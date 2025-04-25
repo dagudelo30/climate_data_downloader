@@ -6,102 +6,97 @@ Este repositorio contiene un conjunto de scripts y notebooks para descargar, pro
 
 ## 📦 Estructura del proyecto
 
-```plaintext
+```
 climate_data_downloader/
-├── data/                      # Carpeta raíz de todos los datos descargados y procesados
-│   ├── auxiliary/             # Información de apoyo, como shapefiles o archivos de máscara
-│   ├── raw/                   # Datos originales sin procesar desde la fuente (e.g. .gz, .nc, .tif)
-│   ├── interim/               # Datos descomprimidos y/o transformados, listos para análisis posterior
-│   └── processed/             # Datos finales ya recortados o formateados para modelado o análisis
+├── data/                      # Carpeta que contiene todos los datos descargados y procesados.
+│   ├── auxiliary/             # Información de apoyo, como shapefiles o archivos de máscara.
+│   ├── raw/                   # Datos originales sin procesar desde la fuente (e.g. .gz, .nc, .tif).
+│   ├── interim/               # Datos descomprimidos y/o transformados, listos para análisis posterior.
+│   └── processed/             # Datos finales ya recortados al área de interés o formateados para modelado o análisis.
 │
-├── download/                  # Scripts principales para descarga de datos por fuente
-│   ├── chirps.py              # Descarga y validación de precipitación diaria CHIRPS
-│   ├── copernicus.py          # Descarga de variables climáticas vía Copernicus CDS API
-│   ├── gee.py                 # Exportación de NDVI/NDWI desde Google Earth Engine (GEE)
-│   └── utils.py               # Utilidades generales: logs, validaciones, conexión
+├── download/                  # Scripts principales para descarga de datos por fuente.
+│   ├── chirps.py              # Contiene las funciones para realizar la Descarga de precipitación diaria CHIRPS.
+│   ├── copernicus.py          # Contiene las funciones para realizar la Descarga de variables climáticas vía Copernicus CDS API.
+│   ├── gee.py                 # Contiene las funciones para descargar y calcular el NDVI/NDWI desde Google Earth Engine (GEE).
+│   └── utils.py               # Utilidades generales: logs, validaciones, conexión, etc.
 │
 ├── notebooks/                 # Notebooks de demostración y ejecución del pipeline
-│   └── pipeline_demo.ipynb    # Notebook principal con ejemplos de descarga y procesamiento
-│
-├── requirements.txt           # Lista de paquetes necesarios para reproducir el entorno
-├── .env.example               # Ejemplo de archivo de variables de entorno (CDSAPI_KEY)
-├── .gitignore                 # Ignora carpetas como logs, datos y archivos sensibles como .env
-└── README.md                  # Documentación general del proyecto
+│   ├── 00-setup.ipynb         # Notebook inicial que configura la estructura de carpetas e instala la dependencias requeridas.
+│   ├── 01_download_chirps     # Notebook que realiza la descarga de datos desde CHIRPS 
+│   ├── 02_download_cds        # Notebook que realiza la descarga de datos desde Copernicus CDS API. 
+│   ├── 03_download_gee        # Notebook que realiza la descarga de datos desde Google Earth Engine. 
+│  
+├── requirements.txt           # Lista de paquetes necesarios para reproducir el entorno.
+├── .env.example               # Ejemplo de archivo de variables de entorno (CDSAPI_KEY) para realizar la descarga desde Copernicus CDS API.
+├── .gitignore                 # Ignora carpetas como logs, datos y archivos sensibles como .env.
+└── README.md                  # Documentación general del proyecto.
+```
+---
+## 🚀 ¿Qué hace este proyecto?
 
+### ✅ Automatiza la descarga de:
+
+- **CHIRPS**: precipitación diaria como `.tif.gz`, descomprimida y recortada en un área de interés.
+- **Copernicus CDS**: variables climáticas en `.zip`/`.tgz` con extracción automática y recortada en un área de interés.
+- **Google Earth Engine**: Indices a nivel diario obtenidos, calculados y recortados en un área de interés. 
+  - **NDVI** (Índice de Vegetación)
+  - **NDWI** (Índice de Agua Vegetal)
+
+### ✅ Exporta todo a:
+
+- Formatos `.nc` o `.tif` según la fuente
+- Resoluciones compatibles con análisis de cambio climático o modelado agroclimático
+
+---
 ## ⚙️ Requisitos
 
-Instala los paquetes necesarios:
+### 1. Configurar el archivo `.env` para poder descargar datos desde Copernicus CDS API.
 
-```bash
-pip install -r requirements.txt
-🔐 Configuración del archivo .env
-Para descargar datos desde la API de Copernicus CDS es necesario autenticarte:
+1. Copia el archivo `.env.example` y crea uno llamado `.env.`
 
-Crea una cuenta en: https://cds.climate.copernicus.eu
+```
+.env.example → .env
+```
 
-Copia tu clave de API (uid:api-key)
+2. Abre `.env` y coloca tu clave de la API de Copernicus:
 
-Crea un archivo .env (puedes partir de .env.example):
+```
+CDSAPI_KEY=123456:abcde-tu-clave-personal
+```
 
-bash
-Always show details
+> Puedes obtener más información: [https://cds.climate.copernicus.eu/how-to-api](https://cds.climate.copernicus.eu/how-to-api). No es necesario crear ningún archivo adicional o instalar el paquete cdsapi, ya que automaticamente se crean los archivos necesarios en la ruta del usuario y se instalan las dependencias necesarias.
 
-Copy
-cp .env.example .env
-Modifica el valor de CDSAPI_KEY:
+---
+## 🛰️ Flujos de descarga disponibles
 
-env
-Always show details
+### ☁️ CHIRPS (precipitación diaria)
 
-Copy
-CDSAPI_KEY=123456:abcdefg-your-api-key
-El archivo .cdsapirc se generará automáticamente cuando ejecutes los scripts.
+- Fuente: Climate Hazards Group
+- Archivo: `download/chirps.py`
+- Proceso: descarga → descomprime → recorta al shapefile de interés
 
-🚀 Fuentes de datos y flujos incluidos
-🌧️ CHIRPS
-Datos diarios de precipitación
+### ☀️ Copernicus CDS (temperatura, radiación, humedad, etc.)
 
-Se descargan como .tif.gz, se descomprimen y recortan al área de interés
+- Fuente: ERA5 AgERA5
+- Archivo: `download/copernicus.py`
+- Proceso: descarga `.zip` o `.tgz` → extracción → organización
 
-Usa: download/chirps.py
+### 🌿 Google Earth Engine (MODIS)
 
-☀️ Copernicus (CDS)
-Variables como radiación solar, temperatura, humedad, viento, etc.
+- Fuente: MOD09GA
+- Archivo: `download/gee.py`
+- Exporta:
+  - `NDVI`: usando bandas RED y NIR
+  - `NDWI`: usando bandas NIR y SWIR
+- Salida: `.tif` por día
 
-Se descargan como .nc.gz y se descomprimen
+---
 
-Usa: download/copernicus.py
+## 🧠 Recomendaciones
 
-🌱 Google Earth Engine (GEE)
-Variables derivadas de MODIS como NDVI y NDWI
+- Asegúrate de tener conexión a internet para conectarte a las APIs
+- Puedes personalizar el área de interés para realizar la descarga.
+- Si usas Earth Engine por primera vez, debes seguir las instrucciones del notebook `03_download_gee`.
 
-Se exportan como .tif ya recortadas
+---
 
-Usa: download/gee.py
-
-📓 Ejecución
-Puedes usar directamente el notebook:
-
-bash
-Always show details
-
-Copy
-notebooks/pipeline_demo.ipynb
-O correr los scripts modularmente con tus propias fechas y shapefiles.
-
-🧪 Reproducibilidad
-Todos los flujos están diseñados para ser:
-
-Automatizados
-
-Controlados por fecha y área
-
-Basados en estructuras de carpetas replicables
-
-Sincronizados con .env y logs (logs/download_log.txt)
-
-📬 Contacto
-Este repositorio ha sido desarrollado por Diego Agudelo como parte de un flujo de trabajo climático reproducible para la zona de Cali, Colombia.
-
-📝 Licencia
-Puedes usar este código con fines educativos o de investigación. Si lo reutilizas, por favor cita el repositorio o a su autor. 
