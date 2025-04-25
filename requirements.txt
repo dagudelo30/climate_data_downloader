@@ -1,0 +1,15 @@
+requests
+tqdm
+PyYAML
+rasterio
+geopandas
+shapely
+fiona
+retrying
+cdsapi
+python-dotenv
+geopandas
+geemap
+earthengine-api
+pycrs
+shapely>=2.0.0
