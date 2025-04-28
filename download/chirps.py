@@ -10,9 +10,6 @@ def descargar_chirps(url, output_path, min_size_kb=50):
     Descarga un archivo CHIRPS desde una URL y lo guarda en la ruta indicada.
     Muestra una barra de progreso con tamaño y velocidad de descarga.
     """
-    if not check_internet_connection():
-        raise Exception("Sin conexión a Internet.")
-
     ensure_dir(os.path.dirname(output_path))
 
     if is_valid_file(output_path, min_size_kb):
