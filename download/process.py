@@ -9,7 +9,7 @@ import tarfile
 from pathlib import Path
 
 
-def extract_zip_flat(zip_path, output_dir, max_name_length=150):
+def extract_zip_flat(zip_path, output_dir, max_name_length=130):
     """
     Extrae todos los archivos de un archivo .zip directamente en `output_dir`,
     ignorando cualquier estructura de carpetas interna y truncando nombres
