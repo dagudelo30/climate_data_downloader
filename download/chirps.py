@@ -1,8 +1,66 @@
-import os
-import requests
+import os, requests, gzip
+from pathlib import Path
 from tqdm import tqdm
-from download.utils import check_internet_connection, ensure_dir, is_valid_file, log_event
 from retrying import retry
+from download.utils import check_internet_connection, ensure_dir, is_valid_file, log_event
+
+
+def ensure_dir(p): Path(p).mkdir(parents=True, exist_ok=True)
+
+def is_valid_file(path, min_kb):
+    return os.path.isfile(path) and os.path.getsize(path) >= min_kb * 1024
+
+@retry(stop_max_attempt_number=3, wait_exponential_multiplier=1000)
+def descargar_chirps1(url, output_path, min_size_kb=50):
+    output_path = Path(output_path)
+    ensure_dir(output_path.parent)
+
+    # --- HEAD: tamaño esperado ---
+    head = requests.head(url, allow_redirects=True, timeout=10)
+    head.raise_for_status()
+    expected = int(head.headers.get("content-length", 0))          # 0 = servidor no lo declara
+
+    # --- ¿ya existe y coincide byte por byte? ---
+    if expected and output_path.exists() and output_path.stat().st_size == expected:
+        print(f"✓ Archivo ya existe y tiene tamaño correcto: {output_path.name}")
+        return
+
+    # --- GET con stream ---
+    with requests.get(url, stream=True, timeout=(10, 300)) as r:
+        r.raise_for_status()
+        total_size = int(r.headers.get("content-length", 0))
+        with open(output_path, "wb") as f, tqdm(
+            desc=f"Descargando {output_path.name}",
+            total=total_size or None,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as barra:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    barra.update(len(chunk))
+            f.flush(); os.fsync(f.fileno())         # fuerza escritura en disco
+
+    # --- Validaciones post‑descarga ---
+    actual = output_path.stat().st_size
+    if expected and actual != expected:
+        output_path.unlink(missing_ok=True)
+        raise ValueError(f"Tamaño incorrecto ({actual} vs {expected})")
+
+    if actual < min_size_kb * 1024:
+        output_path.unlink(missing_ok=True)
+        raise ValueError("Archivo demasiado pequeño, probablemente vacío")
+
+    try:                                           # test rápido de integridad gzip
+        with gzip.open(output_path, "rb") as gz:
+            gz.read(1)
+    except OSError:
+        output_path.unlink(missing_ok=True)
+        raise ValueError("Archivo gzip corrupto")
+
+    print(f"✓ Descarga correcta: {output_path.name}")
+
 
 @retry(stop_max_attempt_number=3, wait_exponential_multiplier=1000)
 def descargar_chirps(url, output_path, min_size_kb=50):
