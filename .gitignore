@@ -26,6 +26,7 @@ logs/
 data/raw/
 data/interim/
 data/processed/
+data/auxiliary/tokens/
 
 # MacOS/Windows system files
 .DS_Store

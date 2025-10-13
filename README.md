@@ -1,6 +1,6 @@
 # 🌎 Climate Data Downloader
 
-Este repositorio contiene un conjunto de scripts y notebooks para descargar, procesar y organizar variables climáticas provenientes de diferentes fuentes: **CHIRPS**, **Copernicus CDS**, y **Google Earth Engine (GEE)**.
+Este repositorio contiene un conjunto de scripts y notebooks para descargar, procesar y organizar variables climáticas provenientes de diferentes fuentes: **MSWEP**, **Copernicus CDS**, y **Google Earth Engine (GEE)**.
 
 ---
 
@@ -9,20 +9,20 @@ Este repositorio contiene un conjunto de scripts y notebooks para descargar, pro
 ```
 climate_data_downloader/
 ├── data/                      # Carpeta que contiene todos los datos descargados y procesados.
-│   ├── auxiliary/             # Información de apoyo, como shapefiles o archivos de máscara.
+│   ├── auxiliary/             # Información de apoyo, como shapefiles, token de autentificación o archivos de máscara.
 │   ├── raw/                   # Datos originales sin procesar desde la fuente (e.g. .gz, .nc, .tif).
 │   ├── interim/               # Datos descomprimidos y/o transformados, listos para análisis posterior.
 │   └── processed/             # Datos finales ya recortados al área de interés o formateados para modelado o análisis.
 │
 ├── download/                  # Scripts principales para descarga de datos por fuente.
-│   ├── chirps.py              # Contiene las funciones para realizar la Descarga de precipitación diaria CHIRPS.
+│   ├── mswep.py              # Contiene las funciones para realizar la Descarga de precipitación diaria CHIRPS.
 │   ├── copernicus.py          # Contiene las funciones para realizar la Descarga de variables climáticas vía Copernicus CDS API.
 │   ├── gee.py                 # Contiene las funciones para descargar y calcular el NDVI/NDWI desde Google Earth Engine (GEE).
 │   └── utils.py               # Utilidades generales: logs, validaciones, conexión, etc.
 │
 ├── notebooks/                 # Notebooks de demostración y ejecución del pipeline
 │   ├── 00-setup.ipynb         # Notebook inicial que configura la estructura de carpetas e instala la dependencias requeridas.
-│   ├── 01_download_chirps     # Notebook que realiza la descarga de datos desde CHIRPS 
+│   ├── 01_download_mswep     # Notebook que realiza la descarga de datos desde MSWEP. 
 │   ├── 02_download_cds        # Notebook que realiza la descarga de datos desde Copernicus CDS API. 
 │   ├── 03_download_gee        # Notebook que realiza la descarga de datos desde Google Earth Engine. 
 │  
@@ -36,7 +36,7 @@ climate_data_downloader/
 
 ### ✅ Automatiza la descarga de:
 
-- **CHIRPS**: precipitación diaria como `.tif.gz`, descomprimida y recortada en un área de interés.
+- **MSWEP**: precipitación diaria como `.nc`, descomprimida y recortada en un área de interés.
 - **Copernicus CDS**: variables climáticas en `.zip`/`.tgz` con extracción automática y recortada en un área de interés.
 - **Google Earth Engine**: Indices a nivel diario obtenidos, calculados y recortados en un área de interés. 
   - **NDVI** (Índice de Vegetación)
@@ -69,10 +69,10 @@ CDSAPI_KEY=123456:abcde-tu-clave-personal
 ---
 ## 🛰️ Flujos de descarga disponibles
 
-### ☁️ CHIRPS (precipitación diaria)
+### ☁️ MSWEP (precipitación diaria)
 
-- Fuente: Climate Hazards Group
-- Archivo: `download/chirps.py`
+- Fuente: Multi-Source Weighted-Ensemble Precipitation
+- Archivo: `download/mswep.py`
 - Proceso: descarga → descomprime → recorta al shapefile de interés
 
 ### ☀️ Copernicus CDS (temperatura, radiación, humedad, etc.)
@@ -96,7 +96,7 @@ CDSAPI_KEY=123456:abcde-tu-clave-personal
 
 - Asegúrate de tener conexión a internet para conectarte a las APIs
 - Puedes personalizar el área de interés para realizar la descarga.
+-Para la descarga de MSWEP por primera vez, debes seguir las instrucciones del notebook `01_download_mswep`.
 - Si usas Earth Engine por primera vez, debes seguir las instrucciones del notebook `03_download_gee`.
 
 ---
-
