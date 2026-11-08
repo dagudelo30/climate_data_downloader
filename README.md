@@ -28,6 +28,11 @@ solar. Usa una **arquitectura Medallion** (Bronze → Silver → Gold).
 * **Latencia operativa medida en vivo** (`climate-pipeline availability`): el último día
   disponible hoy por fuente y la última semana epidemiológica completa.
 
+**Datos de la corrida de ejemplo** (Cali, 30 ago – 7 nov 2026): los Parquet de Gold en 100 m,
+500 m, 1 km y 5 km están en la Release
+[`cali-operativo-2026-11-08`](https://github.com/Felipep17/climate-pipeline/releases/tag/cali-operativo-2026-11-08)
+(no se versionan en git porque pesan ~240 MB; se regeneran con `examples/cali_operational/run_pipeline.sh`).
+
 ## Documentación
 
 | Documento | Contenido |
