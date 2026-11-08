@@ -38,7 +38,7 @@ solar. Usa una **arquitectura Medallion** (Bronze → Silver → Gold).
 | [`docs/flujo_proceso.html`](docs/flujo_proceso.html) | El proceso de punta a punta: proveedores, plan por latencia, Bronze, Silver, Gold anidado y estáticas |
 | [`docs/modelo_relacional.html`](docs/modelo_relacional.html) | Tablas, claves, rutas y cómo se cruzan las escalas (`parent_cell_ids`) |
 | [`docs/predictores_por_variable.html`](docs/predictores_por_variable.html) | Papers por variable objetivo: qué predictores usa la literatura y en qué columnas están ([versión Markdown](docs/predictores_por_variable.md)) |
-| [`outputs/cali_operational/README.md`](outputs/cali_operational/README.md) | Evidencias del ejercicio operativo: filas por grilla, cobertura por fuente y consistencia entre escalas |
+| [`outputs/cali_operational/README.md`](outputs/cali_operational/README.md) | Evidencias del ejercicio operativo: filas por grilla, cobertura por fuente, consistencia entre escalas y figuras (mapas en 100 m, 500 m, 1 km y 5 km, GIF semanal, series diarias) |
 
 `uv run python docs/make_docs.py` regenera los HTML de `docs/` desde el catálogo de variables.
 
@@ -93,11 +93,11 @@ uv run climate-pipeline run --aoi-path data/auxiliary/shapefiles/cali/cali.shp \
   --target-grid 1km=EPSG:9377@1000 --target-grid 5km=EPSG:9377@5000
 ```
 
+![Variables clave de una semana epidemiológica en 100 m, 500 m, 1 km y 5 km](outputs/cali_operational/maps/resoluciones_semana.png)
+
 > Ejemplo histórico: Cali, enero a mayo de 2026, con CHIRPS, AgERA5 y NDVI/NDWI en 1 km y 5 km
 > independientes ([`outputs/cali_2026-01_2026-05/`](outputs/cali_2026-01_2026-05/README.md),
 > `examples/cali_2026/run_pipeline.sh`).
-
-![Precipitación CHIRPS y temperatura AgERA5 por semana epidemiológica, grillas de 1 km y 5 km sobre Cali](outputs/cali_2026-01_2026-05/animations/weekly_1km_vs_5km.gif)
 
 **Contenido:** [1. Inicio rápido](#1-inicio-rápido-uv) ·
 [2. Configuración](#2-configuración) · [3. Arquitectura](#3-arquitectura) ·

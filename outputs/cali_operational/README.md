@@ -51,6 +51,43 @@ Cada grilla se calcula directamente desde los datos nativos a su resolución. Pa
 
 Detalle por columna: [`tables/column_inventory.csv`](tables/column_inventory.csv).
 
+## Figuras
+
+Generadas con `examples/cali_operational/make_figures.py`.
+
+**Variables clave de la última semana completa en 100 m, 500 m, 1 km y 5 km**
+
+![Variables clave de la última semana completa en 100 m, 500 m, 1 km y 5 km](maps/resoluciones_semana.png)
+
+**Terreno y forma urbana en las cuatro resoluciones**
+
+![Terreno y forma urbana en las cuatro resoluciones](maps/estaticas_resoluciones.png)
+
+**Precipitación IMERG y Tmáx AgERA5 semana a semana, cuatro resoluciones**
+
+![Precipitación IMERG y Tmáx AgERA5 semana a semana, cuatro resoluciones](animations/semanal_resoluciones.gif)
+
+**Promedio diario sobre Cali de una variable por familia**
+
+![Promedio diario sobre Cali de una variable por familia](timeseries/series_diarias.png)
+
+**Una variable por familia, 100 m**
+
+![Una variable por familia, 100 m](maps/variables_100m.png)
+
+**Una variable por familia, 500 m**
+
+![Una variable por familia, 500 m](maps/variables_500m.png)
+
+**Una variable por familia, 1 km**
+
+![Una variable por familia, 1 km](maps/variables_1km.png)
+
+**Una variable por familia, 5 km**
+
+![Una variable por familia, 5 km](maps/variables_5km.png)
+
+
 ## Disponibilidad operativa al 2026-11-08
 
 | source | latest_day | lag_days | last_complete_epiweek | status | method |
