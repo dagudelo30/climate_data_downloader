@@ -5,7 +5,9 @@ Writes under ``--output-dir`` (default ``outputs/cali_operational``):
 * ``maps/resoluciones_semana.png``     key variables of one epidemiological week, one column per grid;
 * ``maps/variables_<grid>.png``         every family of variables of that week on one grid;
 * ``maps/estaticas_resoluciones.png``  terrain and urban covariates, one column per grid;
-* ``animations/semanal_resoluciones.gif`` weekly IMERG precipitation and AgERA5 Tmax, every grid;
+* ``maps/semanas/resoluciones_<YYYY>-W<ww>.png`` the same four variables for every complete week,
+  colour scales fixed over all weeks;
+* ``animations/semanal_resoluciones.gif`` those weekly maps as an animation;
 * ``timeseries/series_diarias.png``    daily AOI means of one variable per family (1 km grid).
 
 Colour scales are one hue per family and are shared across grids (and weeks in the GIF), so
@@ -18,7 +20,6 @@ resolutions are directly comparable. Cells are drawn from ``cell_id`` on each gr
 from __future__ import annotations
 
 import argparse
-import io
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -62,6 +63,8 @@ class Field:
     units: str
     cmap: str
     weekly_sum: bool = False
+    #: Optical/revisit sensors: an empty week means clouds or no overpass, not latency.
+    optical: bool = False
 
 
 # One sequential single-hue ramp per family.
@@ -73,8 +76,8 @@ WEEK_FIELDS = (
     Field("agera5_wind_speed", "Viento a 10 m AgERA5", "m/s", "Purples"),
     Field("agera5_solar_radiation", "Radiación solar AgERA5", "MJ/m²/día", "YlOrBr"),
     Field("goes_cold_cloud_frac_235", "Nube fría GOES (<235 K)", "fracción", "Greys"),
-    Field("modis_lst_day_terra", "LST diurna MODIS Terra", "°C", "Reds"),
-    Field("gee_s2_ndvi", "NDVI Sentinel-2", "índice", "Greens"),
+    Field("modis_lst_day_terra", "LST diurna MODIS Terra", "°C", "Reds", optical=True),
+    Field("gee_s2_ndvi", "NDVI Sentinel-2", "índice", "Greens", optical=True),
     Field("smap_sm_surface", "Humedad del suelo SMAP", "m³/m³", "BuPu"),
     Field("era5land_skin_temp", "Temperatura de piel ERA5-Land", "°C", "Reds"),
     Field("viirs_ntl", "Luces nocturnas VIIRS", "nW/cm²/sr", "Purples"),
@@ -182,10 +185,15 @@ class Figures:
         if title:
             ax.set_title(title, fontsize=9, loc="left", pad=4)
         if frame.empty or field.column not in frame or frame[field.column].isna().all():
+            reason = (
+                "sin dato\n(nubes o sin pasada)"
+                if field.optical
+                else "sin dato todavía\n(semana aún no publicada completa)"
+            )
             ax.text(
                 0.5,
                 0.5,
-                "sin dato\n(nubes o sin pasada)",
+                reason,
                 transform=ax.transAxes,
                 ha="center",
                 va="center",
@@ -208,14 +216,33 @@ class Figures:
         return path
 
     # --- figures ---------------------------------------------------------------------------
-    def resolutions_week(self, year: int, week: int) -> None:
+    def complete_weeks(self) -> list[tuple[int, int]]:
+        frame = self.weekly["1km"]
+        weeks = frame[frame["days_observed"] == 7][["epi_year", "epi_week"]].drop_duplicates()
+        return [tuple(int(v) for v in row) for row in weeks.sort_values(["epi_year", "epi_week"]).to_numpy()]
+
+    def week_dates(self, year: int, week: int) -> str:
+        rows = self.weekly["1km"].query("epi_year == @year and epi_week == @week")
+        start, end = pd.Timestamp(rows["week_start"].iloc[0]), pd.Timestamp(rows["week_end"].iloc[0])
+        return f"{start:%d %b} – {end:%d %b %Y}"
+
+    def resolutions_week(
+        self,
+        year: int,
+        week: int,
+        relative: str = "maps/resoluciones_semana.png",
+        shared_scale: bool = False,
+        dpi: int = 150,
+    ) -> Path:
+        """Key variables of one week, one column per grid. ``shared_scale`` fixes the colour scale
+        over every week (for the weekly series and the GIF); otherwise it fits this week."""
         frames = {g: self.weekly[g].query("epi_year == @year and epi_week == @week") for g in GRIDS}
         fig, axes = plt.subplots(
             len(COMPARE_FIELDS), len(GRIDS), figsize=(13, 3.1 * len(COMPARE_FIELDS)), layout="constrained"
         )
         for row, column in enumerate(COMPARE_FIELDS):
             field = FIELDS[column]
-            norm = self.norm(column, frames)
+            norm = self.norm(column, self.weekly if shared_scale else frames)
             image = None
             for col, grid in enumerate(GRIDS):
                 title = f"{GRID_LABELS[grid]}" if row == 0 else None
@@ -223,13 +250,28 @@ class Figures:
             axes[row, 0].set_ylabel(field.label, fontsize=9, color=INK)
             self.colorbar(fig, image, axes[row, :].tolist(), field)
         fig.suptitle(
-            f"Cali · semana epidemiológica {year}-W{week:02d} en las cuatro resoluciones",
+            f"Cali · semana epidemiológica {year}-W{week:02d} ({self.week_dates(year, week)}) "
+            "en 100 m, 500 m, 1 km y 5 km",
             x=0.02,
             ha="left",
             fontsize=12,
             color=INK,
         )
-        self.save(fig, "maps/resoluciones_semana.png")
+        path = self.output_dir / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(path, dpi=dpi, bbox_inches="tight")
+        plt.close(fig)
+        print(path)
+        return path
+
+    def weekly_series(self) -> list[Path]:
+        """One PNG per complete epidemiological week, colour scales fixed over all weeks."""
+        return [
+            self.resolutions_week(
+                year, week, f"maps/semanas/resoluciones_{year}-W{week:02d}.png", shared_scale=True
+            )
+            for year, week in self.complete_weeks()
+        ]
 
     def variables_grid(self, grid: str, year: int, week: int) -> None:
         frame = self.weekly[grid].query("epi_year == @year and epi_week == @week")
@@ -272,48 +314,19 @@ class Figures:
         )
         self.save(fig, "maps/estaticas_resoluciones.png")
 
-    def weekly_gif(self, fields: tuple[str, ...] = ("imerg_precip", "agera5_temp_max")) -> None:
-        weeks = (
-            self.weekly["1km"][self.weekly["1km"]["days_observed"] == 7][["epi_year", "epi_week"]]
-            .drop_duplicates()
-            .sort_values(["epi_year", "epi_week"])
-            .to_numpy()
-        )
-        norms = {column: self.norm(column, self.weekly) for column in fields}
-        frames_png = []
-        for year, week in weeks:
-            fig, axes = plt.subplots(
-                len(fields), len(GRIDS), figsize=(13, 3.1 * len(fields)), layout="constrained"
+    def weekly_gif(self) -> None:
+        frames = []
+        for year, week in self.complete_weeks():
+            path = self.resolutions_week(
+                year, week, f"animations/_frames/{year}-W{week:02d}.png", shared_scale=True, dpi=80
             )
-            for row, column in enumerate(fields):
-                field = FIELDS[column]
-                image = None
-                for col, grid in enumerate(GRIDS):
-                    frame = self.weekly[grid].query("epi_year == @year and epi_week == @week")
-                    title = GRID_LABELS[grid] if row == 0 else None
-                    image = self.panel(axes[row, col], grid, frame, field, norms[column], title)
-                axes[row, 0].set_ylabel(field.label, fontsize=9, color=INK)
-                self.colorbar(fig, image, axes[row, :].tolist(), field)
-            start = pd.Timestamp(
-                self.weekly["1km"].query("epi_year == @year and epi_week == @week")["week_start"].iloc[0]
-            )
-            fig.suptitle(
-                f"Cali · semana epidemiológica {year}-W{week:02d} (desde {start:%d %b %Y})",
-                x=0.02,
-                ha="left",
-                fontsize=12,
-                color=INK,
-            )
-            buffer = io.BytesIO()
-            fig.savefig(buffer, dpi=90, bbox_inches="tight")
-            plt.close(fig)
-            buffer.seek(0)
-            frames_png.append(Image.open(buffer).convert("RGB"))
-        size = frames_png[0].size
-        frames_png = [frame.resize(size) for frame in frames_png]
+            frames.append(Image.open(path).convert("RGB"))
+            path.unlink()
+        (self.output_dir / "animations/_frames").rmdir()
+        size = frames[0].size
+        frames = [frame.resize(size) for frame in frames]
         path = self.output_dir / "animations/semanal_resoluciones.gif"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        frames_png[0].save(path, save_all=True, append_images=frames_png[1:], duration=1200, loop=0)
+        frames[0].save(path, save_all=True, append_images=frames[1:], duration=1400, loop=0)
         print(path)
 
     def timeseries(self) -> None:
@@ -404,6 +417,7 @@ def main() -> None:
     for grid in GRIDS:
         figures.variables_grid(grid, year, week)
     figures.statics()
+    figures.weekly_series()
     figures.weekly_gif()
     figures.timeseries()
 
