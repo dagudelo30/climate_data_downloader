@@ -19,6 +19,7 @@ from shapely.geometry import Polygon, box
 from climate_pipeline.config import Settings, load_pipeline_config
 from climate_pipeline.domain.aoi import AreaOfInterest
 from climate_pipeline.storage.layout import DataLake
+from climate_pipeline.storage.netcdf import NETCDF_LOCK
 
 # A small polygon around Cali (not a rectangle, so polygon and bbox clipping differ).
 CALI_LIKE = Polygon([(-76.58, 3.33), (-76.46, 3.36), (-76.47, 3.505), (-76.56, 3.49)])
@@ -172,7 +173,9 @@ class FakeCdsClient:
                 )
                 file_name = f"{name}_C3S-glob-agric_AgERA5_{day:%Y%m%d}_final-v2.0.0.nc"
                 local = workdir / file_name
-                dataset_nc.to_netcdf(local)
+                # netCDF/HDF5 is not thread-safe: workers of the extractor call this concurrently.
+                with NETCDF_LOCK:
+                    dataset_nc.to_netcdf(local)
                 bundle.write(local, file_name)
                 local.unlink()
 
