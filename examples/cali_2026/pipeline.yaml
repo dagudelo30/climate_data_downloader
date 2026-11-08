@@ -1,0 +1,54 @@
+# Configuration of the Cali Jan-May 2026 example: config/pipeline.yaml with CHIRPS read from the
+# Earth Engine mirror (see the chirps block below).
+# Pipeline configuration. Every key is optional: unspecified values fall back to the
+# defaults in src/climate_pipeline/config.py (DEFAULT_SOURCES).
+#
+# latency.final_lag_days   days after the observation date when the final product exists
+# latency.prelim_lag_days  days after the observation date when a preliminary product exists
+# latency.lookback_days    window revisited by `run --incremental` (gaps, prelim → final)
+
+clip_mode: polygon   # polygon | bbox ; both keep every touched pixel (all_touched=True)
+
+sources:
+  chirps:
+    max_workers: 2   # CHC answers HTTP 403 to aggressive clients
+    latency:
+      prelim_lag_days: 7
+      final_lag_days: 52
+      lookback_days: 90
+    options:
+      # Example run (2026-10-27): the CHC server rate-limited this machine (HTTP 403)
+      # after the first parallel burst, so CHIRPS is read from the Earth Engine mirror.
+      # The mirror only serves v2.0, and the whole series uses it to avoid mixing versions.
+      version: v2
+      mirror: gee
+
+  agera5:
+    # CDS queues every request for one or more minutes: submit several in parallel.
+    max_workers: 8
+    # variables: null → catalog defaults (see `climate-pipeline variables`)
+    latency:
+      final_lag_days: 8
+      lookback_days: 45
+    options:
+      version: "2_0"
+      area_margin_deg: 0.2
+
+  mswep:
+    max_workers: 1
+    latency:
+      prelim_lag_days: 2
+      final_lag_days: 120
+      lookback_days: 30
+
+  gee:
+    max_workers: 6
+    latency:
+      final_lag_days: 4
+      lookback_days: 30
+    options:
+      # MODIS Terra+Aqua daily (500 m) and Sentinel-2 + Cloud Score+ (100 m, ~5-day revisit):
+      # together they leave a value in ~78 % of Cali's 1 km cell-weeks (MODIS alone ~57 %).
+      products: [modis_terra_aqua_indices, sentinel2_indices]
+      # standard: drop cloud, shadow and internal-cloud pixels; strict: also cloud-adjacent pixels.
+      cloud_mask: standard

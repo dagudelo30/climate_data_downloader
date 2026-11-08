@@ -1,0 +1,1018 @@
+{
+  "ok": true,
+  "started_at": "2026-11-08T17:41:28+00:00",
+  "finished_at": "2026-11-08T17:52:46+00:00",
+  "request": {
+    "aoi": "data/auxiliary/shapefiles/cali/cali.shp",
+    "aoi_bounds": [
+      -76.59076,
+      3.33182,
+      -76.46125,
+      3.50189
+    ],
+    "sources": [
+      "imerg",
+      "agera5",
+      "gee",
+      "era5land",
+      "modis",
+      "viirs",
+      "smap",
+      "landsat",
+      "goes",
+      "sentinel1"
+    ],
+    "start_date": "2026-08-30",
+    "end_date": "2026-11-08",
+    "target_grids": [
+      {
+        "name": "100m",
+        "spec": "EPSG:9377@100"
+      },
+      {
+        "name": "1km",
+        "spec": "EPSG:9377@1000"
+      },
+      {
+        "name": "5km",
+        "spec": "EPSG:9377@5000"
+      }
+    ],
+    "output_format": "parquet",
+    "incremental": false,
+    "nested": true,
+    "force": false,
+    "today": "2026-11-08"
+  },
+  "sources": [
+    {
+      "source": "imerg",
+      "plan": {
+        "source": "imerg",
+        "available_until": "2026-11-06",
+        "final_until": "2026-07-11",
+        "window_start": "2026-08-30",
+        "window_end": "2026-11-06",
+        "requests": 69,
+        "days": 69,
+        "reasons": {
+          "not_yet_expected": 2,
+          "new": 69
+        }
+      },
+      "fetched": 67,
+      "final": 0,
+      "prelim": 67,
+      "missing": 2,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 67,
+      "silver_failures": 0,
+      "quality": {
+        "imerg/precip": {
+          "total_values": 2010,
+          "valid_values": 2010,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "agera5",
+      "plan": {
+        "source": "agera5",
+        "available_until": "2026-10-31",
+        "final_until": "2026-10-31",
+        "window_start": "2026-08-30",
+        "window_end": "2026-10-31",
+        "requests": 1323,
+        "days": 63,
+        "reasons": {
+          "not_yet_expected": 168,
+          "new": 1323
+        }
+      },
+      "fetched": 1323,
+      "final": 1323,
+      "prelim": 0,
+      "missing": 0,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 63,
+      "silver_failures": 0,
+      "quality": {
+        "agera5/dewpoint_temp_2m": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/precipitation_duration_fraction": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/reference_evapotranspiration": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/relative_humidity_2m_06h": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/relative_humidity_2m_09h": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/relative_humidity_2m_12h": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/relative_humidity_2m_15h": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/relative_humidity_2m_18h": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/relative_humidity_2m_max": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/relative_humidity_2m_min": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/solar_radiation_flux": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/temp_day_max_2m": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/temp_day_mean_2m": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/temp_max_2m": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/temp_mean_2m": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/temp_min_2m": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/temp_night_mean_2m": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/temp_night_min_2m": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/vapour_pressure": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/vapour_pressure_deficit_tmax": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "agera5/wind_speed_10m": {
+          "total_values": 1890,
+          "valid_values": 1890,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "gee",
+      "plan": {
+        "source": "gee",
+        "available_until": "2026-11-04",
+        "final_until": "2026-11-04",
+        "window_start": "2026-08-30",
+        "window_end": "2026-11-04",
+        "requests": 670,
+        "days": 67,
+        "reasons": {
+          "not_yet_expected": 40,
+          "new": 670
+        }
+      },
+      "fetched": 388,
+      "final": 388,
+      "prelim": 0,
+      "missing": 282,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 67,
+      "silver_failures": 0,
+      "quality": {
+        "gee/evi": {
+          "total_values": 13885,
+          "valid_values": 13882,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 3,
+          "clipped": 0
+        },
+        "gee/mndwi": {
+          "total_values": 11626,
+          "valid_values": 11578,
+          "non_finite": 0,
+          "below_minimum": 48,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "gee/ndvi": {
+          "total_values": 13885,
+          "valid_values": 13841,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 44,
+          "clipped": 0
+        },
+        "gee/ndwi": {
+          "total_values": 11626,
+          "valid_values": 11626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "gee/s2_bsi": {
+          "total_values": 405730,
+          "valid_values": 405730,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "gee/s2_evi": {
+          "total_values": 405730,
+          "valid_values": 405590,
+          "non_finite": 0,
+          "below_minimum": 18,
+          "above_maximum": 122,
+          "clipped": 0
+        },
+        "gee/s2_mndwi": {
+          "total_values": 405732,
+          "valid_values": 405732,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "gee/s2_ndre": {
+          "total_values": 405732,
+          "valid_values": 405732,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "gee/s2_ndvi": {
+          "total_values": 405732,
+          "valid_values": 405732,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "gee/s2_ndwi": {
+          "total_values": 405732,
+          "valid_values": 405732,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "era5land",
+      "plan": {
+        "source": "era5land",
+        "available_until": "2026-11-01",
+        "final_until": "2026-11-01",
+        "window_start": "2026-08-30",
+        "window_end": "2026-11-01",
+        "requests": 832,
+        "days": 64,
+        "reasons": {
+          "not_yet_expected": 91,
+          "new": 832
+        }
+      },
+      "fetched": 832,
+      "final": 832,
+      "prelim": 0,
+      "missing": 0,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 64,
+      "silver_failures": 0,
+      "quality": {
+        "era5land/albedo": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/evaporation": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/lai_high": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/lai_low": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/net_thermal_radiation": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/runoff": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/sensible_heat_flux": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/skin_temp": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/soil_temp_l1": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/surface_pressure": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/thermal_radiation_down": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/u_wind_10m": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "era5land/v_wind_10m": {
+          "total_values": 1920,
+          "valid_values": 1920,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "modis",
+      "plan": {
+        "source": "modis",
+        "available_until": "2026-11-05",
+        "final_until": "2026-11-05",
+        "window_start": "2026-08-30",
+        "window_end": "2026-11-05",
+        "requests": 476,
+        "days": 68,
+        "reasons": {
+          "not_yet_expected": 21,
+          "new": 476
+        }
+      },
+      "fetched": 474,
+      "final": 474,
+      "prelim": 0,
+      "missing": 2,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 68,
+      "silver_failures": 0,
+      "quality": {
+        "modis/aod_055": {
+          "total_values": 5128,
+          "valid_values": 5128,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "modis/cloud_frac": {
+          "total_values": 39468,
+          "valid_values": 39468,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "modis/column_wv": {
+          "total_values": 5129,
+          "valid_values": 5129,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "modis/lst_day_aqua": {
+          "total_values": 2780,
+          "valid_values": 2780,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "modis/lst_day_terra": {
+          "total_values": 4899,
+          "valid_values": 4899,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "modis/lst_night_aqua": {
+          "total_values": 1824,
+          "valid_values": 1824,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "modis/lst_night_terra": {
+          "total_values": 2441,
+          "valid_values": 2441,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "viirs",
+      "plan": {
+        "source": "viirs",
+        "available_until": "2026-11-02",
+        "final_until": "2026-11-02",
+        "window_start": "2026-08-30",
+        "window_end": "2026-11-02",
+        "requests": 65,
+        "days": 65,
+        "reasons": {
+          "not_yet_expected": 6,
+          "new": 65
+        }
+      },
+      "fetched": 59,
+      "final": 59,
+      "prelim": 0,
+      "missing": 6,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 59,
+      "silver_failures": 0,
+      "quality": {
+        "viirs/ntl": {
+          "total_values": 128856,
+          "valid_values": 128856,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "smap",
+      "plan": {
+        "source": "smap",
+        "available_until": "2026-11-05",
+        "final_until": "2026-11-05",
+        "window_start": "2026-08-30",
+        "window_end": "2026-11-05",
+        "requests": 136,
+        "days": 68,
+        "reasons": {
+          "not_yet_expected": 6,
+          "new": 136
+        }
+      },
+      "fetched": 134,
+      "final": 134,
+      "prelim": 0,
+      "missing": 2,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 67,
+      "silver_failures": 0,
+      "quality": {
+        "smap/sm_rootzone": {
+          "total_values": 2010,
+          "valid_values": 2010,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "smap/sm_surface": {
+          "total_values": 2010,
+          "valid_values": 2010,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "landsat",
+      "plan": {
+        "source": "landsat",
+        "available_until": "2026-11-01",
+        "final_until": "2026-11-01",
+        "window_start": "2026-08-30",
+        "window_end": "2026-11-01",
+        "requests": 64,
+        "days": 64,
+        "reasons": {
+          "not_yet_expected": 7,
+          "new": 64
+        }
+      },
+      "fetched": 8,
+      "final": 8,
+      "prelim": 0,
+      "missing": 56,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 8,
+      "silver_failures": 0,
+      "quality": {
+        "landsat/lst": {
+          "total_values": 881588,
+          "valid_values": 881588,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "goes",
+      "plan": {
+        "source": "goes",
+        "available_until": "2026-11-07",
+        "final_until": "2026-11-07",
+        "window_start": "2026-08-30",
+        "window_end": "2026-11-07",
+        "requests": 980,
+        "days": 70,
+        "reasons": {
+          "not_yet_expected": 14,
+          "new": 980
+        }
+      },
+      "fetched": 966,
+      "final": 966,
+      "prelim": 0,
+      "missing": 14,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 69,
+      "silver_failures": 0,
+      "quality": {
+        "goes/bt_c08": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/bt_c09": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/bt_c10": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/bt_c11": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/bt_c13": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/bt_c13_min": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/bt_c14": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/bt_c15": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/btd_c08_c13": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/btd_c11_c14": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/btd_c13_c15": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/cold_cloud_frac_220": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/cold_cloud_frac_235": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "goes/refl_c02_day": {
+          "total_values": 10626,
+          "valid_values": 10626,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "sentinel1",
+      "plan": {
+        "source": "sentinel1",
+        "available_until": "2026-11-05",
+        "final_until": "2026-11-05",
+        "window_start": "2026-08-30",
+        "window_end": "2026-11-05",
+        "requests": 204,
+        "days": 68,
+        "reasons": {
+          "not_yet_expected": 9,
+          "new": 204
+        }
+      },
+      "fetched": 51,
+      "final": 51,
+      "prelim": 0,
+      "missing": 153,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 17,
+      "silver_failures": 0,
+      "quality": {
+        "sentinel1/vh_db": {
+          "total_values": 8353799,
+          "valid_values": 8353799,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "sentinel1/vh_vv_db": {
+          "total_values": 8353799,
+          "valid_values": 8353799,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        },
+        "sentinel1/vv_db": {
+          "total_values": 8353799,
+          "valid_values": 8353799,
+          "non_finite": 0,
+          "below_minimum": 0,
+          "above_maximum": 0,
+          "clipped": 0
+        }
+      },
+      "error": null,
+      "ok": true
+    }
+  ],
+  "gold": [
+    {
+      "grid_name": "100m",
+      "grid_fingerprint": "122352179ea3db44",
+      "grid_shape": [
+        250,
+        200
+      ],
+      "cells_in_aoi": 12535,
+      "output_format": "parquet",
+      "days_built": 70,
+      "first_day": "2026-08-30",
+      "last_day": "2026-11-07",
+      "days_without_silver": [],
+      "weeks_built": [
+        "2026-W35",
+        "2026-W36",
+        "2026-W37",
+        "2026-W38",
+        "2026-W39",
+        "2026-W40",
+        "2026-W41",
+        "2026-W42",
+        "2026-W43",
+        "2026-W44"
+      ],
+      "daily_rows": 877450,
+      "weekly_rows": 125350,
+      "consistency_violations": {
+        "Tmin <= Tmean": 0,
+        "Tmean <= Tmax": 0,
+        "Tmin <= Tmax": 0,
+        "Tdew <= Tmean": 0
+      }
+    },
+    {
+      "grid_name": "1km",
+      "grid_fingerprint": "ba6af543d3254bc4",
+      "grid_shape": [
+        20,
+        15
+      ],
+      "cells_in_aoi": 160,
+      "output_format": "parquet",
+      "days_built": 70,
+      "first_day": "2026-08-30",
+      "last_day": "2026-11-07",
+      "days_without_silver": [],
+      "weeks_built": [
+        "2026-W35",
+        "2026-W36",
+        "2026-W37",
+        "2026-W38",
+        "2026-W39",
+        "2026-W40",
+        "2026-W41",
+        "2026-W42",
+        "2026-W43",
+        "2026-W44"
+      ],
+      "daily_rows": 11200,
+      "weekly_rows": 1600,
+      "consistency_violations": {
+        "Tmin <= Tmean": 0,
+        "Tmean <= Tmax": 0,
+        "Tmin <= Tmax": 0,
+        "Tdew <= Tmean": 0
+      }
+    },
+    {
+      "grid_name": "5km",
+      "grid_fingerprint": "4f5094e89be47de2",
+      "grid_shape": [
+        5,
+        4
+      ],
+      "cells_in_aoi": 13,
+      "output_format": "parquet",
+      "days_built": 70,
+      "first_day": "2026-08-30",
+      "last_day": "2026-11-07",
+      "days_without_silver": [],
+      "weeks_built": [
+        "2026-W35",
+        "2026-W36",
+        "2026-W37",
+        "2026-W38",
+        "2026-W39",
+        "2026-W40",
+        "2026-W41",
+        "2026-W42",
+        "2026-W43",
+        "2026-W44"
+      ],
+      "daily_rows": 910,
+      "weekly_rows": 130,
+      "consistency_violations": {
+        "Tmin <= Tmean": 0,
+        "Tmean <= Tmax": 0,
+        "Tmin <= Tmax": 0,
+        "Tdew <= Tmean": 0
+      }
+    }
+  ],
+  "gold_errors": {}
+}

@@ -1,0 +1,31 @@
+# Operational configuration for Cali: every daily source, up to today.
+# Every key falls back to src/climate_pipeline/config.py (DEFAULT_SOURCES) when omitted.
+clip_mode: polygon
+
+sources:
+  chirps:
+    max_workers: 2           # CHC answers HTTP 403 to aggressive clients
+    options:
+      version: v3            # prelim (sat, ~7 days) → final (rnl, ~3rd week of next month)
+      disaggregation: rnl
+
+  agera5:
+    max_workers: 8           # CDS queues each request ~1 min: submit in parallel
+
+  gee:
+    max_workers: 6
+    options:
+      products: [modis_terra_aqua_indices, sentinel2_indices]
+      cloud_mask: standard
+
+  # Sub-daily products are aggregated over the Colombian civil day (UTC-5), not the UTC day.
+  imerg:
+    options: {utc_offset_hours: -5}
+  gsmap:
+    options: {utc_offset_hours: -5}
+  smap:
+    options: {utc_offset_hours: -5}
+  goes:
+    options: {utc_offset_hours: -5}
+
+  # Remaining sources (era5land, modis, viirs, landsat, sentinel1) use the defaults.

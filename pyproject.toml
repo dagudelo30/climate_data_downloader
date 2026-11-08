@@ -1,0 +1,80 @@
+[project]
+name = "climate-pipeline"
+version = "0.1.0"
+description = "Medallion (Bronze/Silver/Gold) pipeline for CHIRPS, MSWEP, AgERA5 and Google Earth Engine climate data."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+keywords = ["climate", "remote-sensing", "chirps", "agera5", "mswep", "earth-engine", "medallion", "parquet", "duckdb"]
+dependencies = [
+    "cdsapi==0.7.7",
+    "duckdb==2.0.0",
+    "earthengine-api==1.7.50",
+    "geopandas==1.2.0",
+    "google-api-python-client==2.201.0",
+    "google-auth==2.62.0",
+    "google-auth-oauthlib==1.5.0",
+    "httpx==0.28.1",
+    "netcdf4==1.7.5.1.post1",
+    "numpy==2.5.4",
+    "pandas==3.1.0",
+    "pyarrow==26.0.0",
+    "pydantic==2.14.1",
+    "pydantic-settings==2.16.1",
+    "pyproj==3.8.0",
+    "pyyaml==6.0.3",
+    "rasterio==1.5.2",
+    "rioxarray==0.23.0",
+    "shapely==2.2.0",
+    "tenacity==9.2.1",
+    "typer==0.27.3",
+    "xarray==2026.9.0",
+]
+
+[project.urls]
+Repository = "https://github.com/Felipep17/climate-pipeline"
+Issues = "https://github.com/Felipep17/climate-pipeline/issues"
+
+[project.scripts]
+climate-pipeline = "climate_pipeline.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.9.15,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "contextily==1.7.1",
+    "matplotlib==3.11.2",
+    "pytest==9.2.0",
+    "pytest-cov==7.1.0",
+    "ruff==0.17.3",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "PTH", "C4", "PIE", "PT"]
+ignore = ["RUF001", "RUF002", "RUF003"]  # unicode in Spanish/scientific text (°, −, ×)
+
+[tool.ruff.lint.per-file-ignores]
+"src/climate_pipeline/cli.py" = ["B008"]
+"tests/**" = ["PT018"]  # compound asserts keep related expectations together
+"examples/**" = ["E501"]  # Markdown/report templates
+"docs/**" = ["E501"]  # HTML templates and Spanish variable descriptions
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --strict-markers -m 'not network'"
+markers = ["network: hits real public endpoints (run with: uv run pytest -m network)"]
+filterwarnings = [
+    "ignore::DeprecationWarning:pyogrio.*",
+    "ignore::FutureWarning:rioxarray.*",
+    "ignore::PendingDeprecationWarning:rioxarray.*",
+]

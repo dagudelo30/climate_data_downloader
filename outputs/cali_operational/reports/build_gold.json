@@ -1,0 +1,141 @@
+{
+  "gold": [
+    {
+      "grid_name": "100m",
+      "grid_fingerprint": "ff35c79c06c146f9",
+      "grid_shape": [
+        189,
+        145
+      ],
+      "cells_in_aoi": 12535,
+      "output_format": "parquet",
+      "days_built": 70,
+      "first_day": "2026-08-30",
+      "last_day": "2026-11-07",
+      "days_without_silver": [],
+      "weeks_built": [
+        "2026-W35",
+        "2026-W36",
+        "2026-W37",
+        "2026-W38",
+        "2026-W39",
+        "2026-W40",
+        "2026-W41",
+        "2026-W42",
+        "2026-W43",
+        "2026-W44"
+      ],
+      "daily_rows": 877450,
+      "weekly_rows": 125350,
+      "consistency_violations": {
+        "Tmin <= Tmean": 0,
+        "Tmean <= Tmax": 0,
+        "Tmin <= Tmax": 0,
+        "Tdew <= Tmean": 0
+      }
+    },
+    {
+      "grid_name": "500m",
+      "grid_fingerprint": "2525e61e2683cff5",
+      "grid_shape": [
+        39,
+        29
+      ],
+      "cells_in_aoi": 570,
+      "output_format": "parquet",
+      "days_built": 70,
+      "first_day": "2026-08-30",
+      "last_day": "2026-11-07",
+      "days_without_silver": [],
+      "weeks_built": [
+        "2026-W35",
+        "2026-W36",
+        "2026-W37",
+        "2026-W38",
+        "2026-W39",
+        "2026-W40",
+        "2026-W41",
+        "2026-W42",
+        "2026-W43",
+        "2026-W44"
+      ],
+      "daily_rows": 39900,
+      "weekly_rows": 5700,
+      "consistency_violations": {
+        "Tmin <= Tmean": 0,
+        "Tmean <= Tmax": 0,
+        "Tmin <= Tmax": 0,
+        "Tdew <= Tmean": 0
+      }
+    },
+    {
+      "grid_name": "1km",
+      "grid_fingerprint": "ba6af543d3254bc4",
+      "grid_shape": [
+        20,
+        15
+      ],
+      "cells_in_aoi": 160,
+      "output_format": "parquet",
+      "days_built": 70,
+      "first_day": "2026-08-30",
+      "last_day": "2026-11-07",
+      "days_without_silver": [],
+      "weeks_built": [
+        "2026-W35",
+        "2026-W36",
+        "2026-W37",
+        "2026-W38",
+        "2026-W39",
+        "2026-W40",
+        "2026-W41",
+        "2026-W42",
+        "2026-W43",
+        "2026-W44"
+      ],
+      "daily_rows": 11200,
+      "weekly_rows": 1600,
+      "consistency_violations": {
+        "Tmin <= Tmean": 0,
+        "Tmean <= Tmax": 0,
+        "Tmin <= Tmax": 0,
+        "Tdew <= Tmean": 0
+      }
+    },
+    {
+      "grid_name": "5km",
+      "grid_fingerprint": "4f5094e89be47de2",
+      "grid_shape": [
+        5,
+        4
+      ],
+      "cells_in_aoi": 13,
+      "output_format": "parquet",
+      "days_built": 70,
+      "first_day": "2026-08-30",
+      "last_day": "2026-11-07",
+      "days_without_silver": [],
+      "weeks_built": [
+        "2026-W35",
+        "2026-W36",
+        "2026-W37",
+        "2026-W38",
+        "2026-W39",
+        "2026-W40",
+        "2026-W41",
+        "2026-W42",
+        "2026-W43",
+        "2026-W44"
+      ],
+      "daily_rows": 910,
+      "weekly_rows": 130,
+      "consistency_violations": {
+        "Tmin <= Tmean": 0,
+        "Tmean <= Tmax": 0,
+        "Tmin <= Tmax": 0,
+        "Tdew <= Tmean": 0
+      }
+    }
+  ],
+  "gold_errors": {}
+}

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Latencia de fuentes climáticas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an operations bulletin. Answer first (what is complete today), then the per-source
+   timeline against epidemiological weeks, then the reference table. */
+:root {
+  --bg: #f6f7f4; --surface: #ffffff; --fg: #1d2421; --muted: #5c6862; --rule: #d9ddd7;
+  --band-a: #eef0eb; --band-b: #f6f7f4;
+  --accent: #1f6f5c; --accent-soft: #d6ebe4; --prelim: #b7791f; --prelim-soft: #f6e7cc;
+  --today: #b4372c; --hatch: #c7ccc6;
+  --font-display: "Archivo Narrow", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141917; --surface: #1b211e; --fg: #e5ebe7; --muted: #9aa69f; --rule: #2e3833;
+  --band-a: #1b221f; --band-b: #141917; --accent: #5fbfa3; --accent-soft: #1f3a32;
+  --prelim: #e2a84b; --prelim-soft: #3b2f1a; --today: #f07a6c; --hatch: #3a4540; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141917; --surface: #1b211e; --fg: #e5ebe7; --muted: #9aa69f; --rule: #2e3833;
+  --band-a: #1b221f; --band-b: #141917; --accent: #5fbfa3; --accent-soft: #1f3a32;
+  --prelim: #e2a84b; --prelim-soft: #3b2f1a; --today: #f07a6c; --hatch: #3a4540; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--font-body); }
+.page { max-width: 1080px; margin: 0 auto; padding-block: 36px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 32px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font: 600 12px/1 var(--font-data); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 600 clamp(28px, 4.4vw, 44px)/1.08 var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font: 600 22px/1.2 var(--font-display); margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); }
+.answer { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px;
+  background: var(--rule); border: 1px solid var(--rule); }
+.answer > div { background: var(--surface); padding: 18px 20px; display: grid; gap: 4px; align-content: start; }
+.answer .k { font: 500 12px/1.3 var(--font-data); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.answer .v { font: 600 30px/1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.answer .v.accent { color: var(--accent); }
+.answer .d { color: var(--muted); font-size: 13.5px; }
+section { display: grid; gap: 14px; min-width: 0; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); }
+svg.timeline { display: block; min-width: 760px; width: 100%; height: auto; font-family: var(--font-data); }
+.band-a { fill: var(--band-a); } .band-b { fill: var(--band-b); }
+.week { font-size: 11px; fill: var(--muted); text-anchor: middle; letter-spacing: .04em; }
+.row-label { font: 500 12.5px var(--font-body); fill: var(--fg); text-anchor: end; }
+.bar-final { fill: var(--accent); } .bar-prelim { fill: var(--prelim); }
+.bar-config { opacity: .55; }
+.hatch { stroke: var(--hatch); stroke-width: 3; }
+.lag { stroke: none; }
+.lag-label { font-size: 11.5px; fill: var(--muted); }
+.final-tick { stroke: var(--fg); stroke-width: 2; }
+.today { stroke: var(--today); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.today-label { font-size: 11px; fill: var(--today); text-anchor: end; }
+.muted { fill: var(--muted); font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 18px; height: 10px; display: inline-block; border-radius: 2px; }
+.sw.final { background: var(--accent); } .sw.prelim { background: var(--prelim); }
+.sw.config { background: var(--accent); opacity: .55; }
+.sw.lagsw { background: repeating-linear-gradient(45deg, var(--hatch) 0 2px, transparent 2px 5px); }
+.sw.tick { width: 2px; height: 14px; background: var(--fg); }
+table { border-collapse: collapse; width: 100%; min-width: 860px; font-size: 13.5px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+thead th { font: 500 11.5px/1.3 var(--font-data); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+tr.subgroup th { font: 600 13px/1.3 var(--font-data); color: var(--muted); padding-top: 12px; }
+tr.group th { font: 600 15px/1.2 var(--font-display); padding-top: 18px; color: var(--fg); background: var(--band-a); }
+.name { display: block; font-weight: 600; }
+.sub { display: block; color: var(--muted); font-size: 12.5px; }
+.num { font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.method { color: var(--muted); white-space: nowrap; }
+.notes { color: var(--muted); max-width: 38ch; }
+.vars { display: block; margin-top: 4px; font: 11.5px/1.45 var(--font-data); color: var(--muted); word-break: break-word; }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.chip-final { background: var(--accent-soft); color: var(--accent); }
+.chip-prelim { background: var(--prelim-soft); color: var(--prelim); }
+.lag-pill { display: inline-block; min-width: 4.6em; }
+.res { display: block; font: 500 13px/1.4 var(--font-data); font-variant-numeric: tabular-nums; max-width: 24ch; }
+.row-res { fill: var(--muted); font: 400 11.5px var(--font-data); }
+.lag-2, .lag-3 { color: var(--today); font-weight: 600; }
+ol { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 76ch; }
+footer { color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--rule); padding-top: 14px; }
+code { font-family: var(--font-data); font-size: .92em; }
+</style>
+</head>
+<body>
+<main class="page">
+  <header>
+    <div class="eyebrow">Dengue.IA Cali · disponibilidad de covariables · cali</div>
+    <h1>Si hoy, domingo 8 nov de 2026, consulto todas las fuentes, ¿hasta qué día tengo datos?</h1>
+    <p class="lede">Medido contra cada proveedor el 2026-11-08 17:51 UTC. Hoy empieza la
+    semana epidemiológica <strong>2026-W45</strong> (8 nov – 14 nov). Una semana sirve
+    al modelo cuando sus siete días (domingo a sábado) están publicados.</p>
+  </header>
+
+  <div class="answer">
+    <div><span class="k">Todas las fuentes completas hasta</span><span class="v accent">30 oct</span>
+      <span class="d">Última semana completa con todo: <strong>2026-W42</strong>, 3 semanas antes de la actual.</span></div>
+    <div><span class="k">Sin VIIRS luces nocturnas</span><span class="v">31 oct</span>
+      <span class="d">Semana completa: <strong>2026-W43</strong>. VIIRS luces nocturnas es la fuente que más retrasa (9 días).</span></div>
+    <div><span class="k">Más rápidas</span><span class="v">1 días</span>
+      <span class="d">GOES-East ABI.</span></div>
+  </div>
+
+  <section>
+    <h2>Última fecha disponible por fuente</h2>
+    <div class="legend">
+      <span><i class="sw final"></i>dato final</span><span><i class="sw prelim"></i>dato preliminar (se reemplaza)</span>
+      <span><i class="sw config"></i>latencia configurada, no medida</span><span><i class="sw lagsw"></i>rezago hasta hoy</span>
+      <span><i class="sw tick"></i>fin del dato final (CHIRPS)</span>
+    </div>
+    <div class="scroll"><svg viewBox="0 0 940 374" role="img" aria-label="Última fecha disponible por fuente" class="timeline">
+<defs><pattern id="lag" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" class="hatch"/></pattern></defs>
+<rect x="236.0" y="22" width="44.7" height="322" class="band-a"/>
+<text x="258.4" y="36" class="week">SE 38</text>
+<rect x="280.7" y="22" width="104.4" height="322" class="band-b"/>
+<text x="332.9" y="36" class="week">SE 39</text>
+<rect x="385.1" y="22" width="104.4" height="322" class="band-a"/>
+<text x="437.3" y="36" class="week">SE 40</text>
+<rect x="489.5" y="22" width="104.4" height="322" class="band-b"/>
+<text x="541.7" y="36" class="week">SE 41</text>
+<rect x="593.9" y="22" width="104.4" height="322" class="band-a"/>
+<text x="646.1" y="36" class="week">SE 42</text>
+<rect x="698.3" y="22" width="104.4" height="322" class="band-b"/>
+<text x="750.5" y="36" class="week">SE 43</text>
+<rect x="802.7" y="22" width="104.4" height="322" class="band-a"/>
+<text x="854.9" y="36" class="week">SE 44</text>
+<rect x="907.1" y="22" width="14.9" height="322" class="band-b"/>
+<text x="224" y="63.0" class="row-label">GPM IMERG V07<tspan class="row-res"> · 11 km</tspan></text>
+<rect x="236" y="51" width="656.2" height="16" rx="2" class="bar-prelim"/>
+<rect x="892.2" y="51" width="29.8" height="16" fill="url(#lag)" class="lag"/>
+<text x="898.2" y="63.0" class="lag-label">2 d</text>
+<text x="224" y="93.0" class="row-label">AgERA5<tspan class="row-res"> · 11 km</tspan></text>
+<rect x="236" y="81" width="566.7" height="16" rx="2" class="bar-final bar-config"/>
+<line x1="802.7" x2="802.7" y1="78" y2="100" class="final-tick"/>
+<rect x="802.7" y="81" width="119.3" height="16" fill="url(#lag)" class="lag"/>
+<text x="808.7" y="93.0" class="lag-label">8 d</text>
+<text x="224" y="123.0" class="row-label">ERA5-Land<tspan class="row-res"> · 11 km</tspan></text>
+<rect x="236" y="111" width="581.6" height="16" rx="2" class="bar-final"/>
+<rect x="817.6" y="111" width="104.4" height="16" fill="url(#lag)" class="lag"/>
+<text x="823.6" y="123.0" class="lag-label">7 d</text>
+<text x="224" y="153.0" class="row-label">GOES-East ABI<tspan class="row-res"> · 2.0 km</tspan></text>
+<rect x="236" y="141" width="671.1" height="16" rx="2" class="bar-final"/>
+<rect x="907.1" y="141" width="14.9" height="16" fill="url(#lag)" class="lag"/>
+<text x="913.1" y="153.0" class="lag-label">1 d</text>
+<text x="224" y="183.0" class="row-label">MODIS LST, nubes, MAIAC<tspan class="row-res"> · 1.0 km</tspan></text>
+<rect x="236" y="171" width="641.3" height="16" rx="2" class="bar-final"/>
+<rect x="877.3" y="171" width="44.7" height="16" fill="url(#lag)" class="lag"/>
+<text x="883.3" y="183.0" class="lag-label">3 d</text>
+<text x="224" y="213.0" class="row-label">Landsat 8/9<tspan class="row-res"> · 30 m</tspan></text>
+<rect x="236" y="201" width="581.6" height="16" rx="2" class="bar-final"/>
+<rect x="817.6" y="201" width="104.4" height="16" fill="url(#lag)" class="lag"/>
+<text x="823.6" y="213.0" class="lag-label">7 d</text>
+<text x="224" y="243.0" class="row-label">MODIS/Sentinel-2 índices<tspan class="row-res"> · 100 m</tspan></text>
+<rect x="236" y="231" width="656.2" height="16" rx="2" class="bar-final"/>
+<rect x="892.2" y="231" width="29.8" height="16" fill="url(#lag)" class="lag"/>
+<text x="898.2" y="243.0" class="lag-label">2 d</text>
+<text x="224" y="273.0" class="row-label">Sentinel-1 radar<tspan class="row-res"> · 10 m</tspan></text>
+<rect x="236" y="261" width="656.2" height="16" rx="2" class="bar-final"/>
+<rect x="892.2" y="261" width="29.8" height="16" fill="url(#lag)" class="lag"/>
+<text x="898.2" y="273.0" class="lag-label">2 d</text>
+<text x="224" y="303.0" class="row-label">SMAP L4<tspan class="row-res"> · 9.0 km</tspan></text>
+<rect x="236" y="291" width="641.3" height="16" rx="2" class="bar-final"/>
+<rect x="877.3" y="291" width="44.7" height="16" fill="url(#lag)" class="lag"/>
+<text x="883.3" y="303.0" class="lag-label">3 d</text>
+<text x="224" y="333.0" class="row-label">VIIRS luces nocturnas<tspan class="row-res"> · 460 m</tspan></text>
+<rect x="236" y="321" width="551.8" height="16" rx="2" class="bar-final"/>
+<rect x="787.8" y="321" width="134.2" height="16" fill="url(#lag)" class="lag"/>
+<text x="793.8" y="333.0" class="lag-label">9 d</text>
+<line x1="922.0" x2="922.0" y1="22" y2="366" class="today"/>
+<text x="918.0" y="362" class="today-label">hoy</text>
+</svg></div>
+  </section>
+
+  <section>
+    <h2>Qué implica para el modelo semanal</h2>
+    <ol>
+      <li>Un pronóstico emitido hoy, al inicio de 2026-W45, solo puede usar covariables completas hasta
+      <strong>2026-W42</strong> si exige todas las fuentes, o hasta <strong>2026-W43</strong> sin
+      VIIRS luces nocturnas. Entrenar con rezagos de al menos
+      3 semanas evita usar en el entrenamiento información que en operación no existe.</li>
+      <li>IMERG entrega primero un dato <strong>provisional</strong> (y CHIRPS, si se usa, uno preliminar). El pipeline lo marca como
+      <code>prelim</code> y lo vuelve a descargar cuando sale el final. Para reentrenar conviene usar solo semanas finales;
+      para pronosticar se usa el preliminar.</li>
+      <li>Las fuentes ópticas (MODIS, Landsat, Sentinel-2) publican a diario, pero un día publicado puede estar cubierto de nubes
+      sobre Cali. Su latencia efectiva es mayor: hay que usar promedios semanales con el conteo <code>_ndays</code>.</li>
+      <li>La corrida diaria (<code>run --incremental</code>) pide a cada fuente solo los días que ya pueden existir según su
+      latencia y vuelve a intentar los faltantes. Este reporte se regenera con <code>climate-pipeline availability</code>.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Detalle por fuente</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Fuente</th><th scope="col">Resolución original</th>
+        <th scope="col">Latencia hoy</th><th scope="col">Último día</th>
+        <th scope="col">Semana completa</th><th scope="col">Estado</th><th scope="col">Cómo se obtuvo</th><th scope="col">Notas y columnas Gold</th></tr></thead>
+        <tbody>
+        <tr class="group"><th colspan="8" scope="colgroup">Precipitación</th></tr><tr><td><span class="name">GPM IMERG V07</span><span class="sub">NASA GPM</span></td><td><span class="res">11 km (0.1°)</span></td><td class="num"><span class="lag-pill lag-0">2 días</span></td><td class="num">6 nov</td><td class="num">2026-W43</td><td><span class="chip chip-prelim">preliminar</span></td><td class="method">medido hoy</td><td class="notes">Seleccionada para precipitación: la más reciente. Corrida provisional; la final llega ~3.5 meses después.<span class="vars">1 columna: imerg_precip</span></td></tr><tr class="group"><th colspan="8" scope="colgroup">Reanálisis agroclimático</th></tr><tr><td><span class="name">AgERA5</span><span class="sub">Copernicus C3S / ECMWF</span></td><td><span class="res">11 km (0.1°)</span></td><td class="num"><span class="lag-pill lag-2">8 días</span></td><td class="num">31 oct</td><td class="num">2026-W43</td><td><span class="chip chip-final">final</span></td><td class="method">latencia configurada</td><td class="notes">El CDS publica cada día con ~7-8 días de rezago; no se consulta en vivo porque cada petición hace cola.<span class="vars">21 columnas: agera5_temp_mean, agera5_temp_max, agera5_temp_min, agera5_dewpoint_mean, agera5_solar_radiation, agera5_vapour_pressure, agera5_rh_06h, agera5_rh_15h, agera5_wind_speed, agera5_temp_day_max, agera5_temp_day_mean, agera5_temp_night_mean, agera5_temp_night_min, agera5_rh_09h, agera5_rh_12h, agera5_rh_18h, agera5_rh_max, agera5_rh_min, agera5_vpd_tmax, agera5_et0, agera5_precip_hours_frac</span></td></tr><tr><td><span class="name">ERA5-Land</span><span class="sub">ECMWF / Copernicus C3S</span></td><td><span class="res">11 km (0.1°)</span></td><td class="num"><span class="lag-pill lag-1">7 días</span></td><td class="num">1 nov</td><td class="num">2026-W43</td><td><span class="chip chip-final">final</span></td><td class="method">medido hoy</td><td class="notes">Solo aporta lo que AgERA5 no tiene: viento u/v, suelo, flujos, onda larga, escorrentía, LAI y albedo.<span class="vars">13 columnas: era5land_skin_temp, era5land_surface_pressure, era5land_evaporation, era5land_u_wind_10m, era5land_v_wind_10m, era5land_soil_temp_l1, era5land_sensible_heat_flux, era5land_net_thermal_radiation, era5land_thermal_radiation_down, era5land_runoff, era5land_lai_high, era5land_lai_low, era5land_albedo</span></td></tr><tr class="group"><th colspan="8" scope="colgroup">Geoestacionario (nubes y vapor)</th></tr><tr><td><span class="name">GOES-East ABI</span><span class="sub">NOAA GOES-East ABI</span></td><td><span class="res">2 km (ABI IR y vapor de agua; visible 0.5-1 km)</span></td><td class="num"><span class="lag-pill lag-0">1 días</span></td><td class="num">7 nov</td><td class="num">2026-W44</td><td><span class="chip chip-final">final</span></td><td class="method">medido hoy</td><td class="notes">Escaneo cada 10 min; un día está completo con ≥120 de 144 escaneos.<span class="vars">14 columnas: goes_bt_c08, goes_bt_c09, goes_bt_c10, goes_bt_c11, goes_bt_c13, goes_bt_c14, goes_bt_c15, goes_bt_c13_min, goes_btd_c13_c15, goes_btd_c08_c13, goes_btd_c11_c14, goes_cold_cloud_frac_235, goes_cold_cloud_frac_220, goes_refl_c02_day</span></td></tr><tr class="group"><th colspan="8" scope="colgroup">Superficie desde satélite</th></tr><tr><td><span class="name">MODIS LST, nubes, MAIAC</span><span class="sub">NASA LP DAAC</span></td><td><span class="res">1 km (LST, nubosidad, vapor de agua y aerosoles MAIAC)</span></td><td class="num"><span class="lag-pill lag-0">3 días</span></td><td class="num">5 nov</td><td class="num">2026-W43</td><td><span class="chip chip-final">final</span></td><td class="method">medido hoy</td><td class="notes">Día publicado no es día despejado: LST, vapor y aerosoles tienen huecos por nubes. Por componente: mod11a1: 2026-11-06; myd11a1: 2026-11-05; mod09ga_cloud: 2026-11-06; mcd19a2: 2026-11-05.<span class="vars">7 columnas: modis_lst_day_terra, modis_lst_night_terra, modis_lst_day_aqua, modis_lst_night_aqua, modis_cloud_frac, modis_column_wv, modis_aod_055</span></td></tr><tr><td><span class="name">Landsat 8/9</span><span class="sub">USGS / NASA</span></td><td><span class="res">30 m (térmico 100 m, entregado a 30 m)</span></td><td class="num"><span class="lag-pill lag-1">7 días</span></td><td class="num">1 nov</td><td class="num">2026-W43</td><td><span class="chip chip-final">final</span></td><td class="method">medido hoy</td><td class="notes">Solo LST (NDVI/NDBI quedan para Sentinel-2, más reciente). Una pasada cada ~8 días.<span class="vars">1 columna: landsat_lst</span></td></tr><tr><td><span class="name">MODIS/Sentinel-2 índices</span><span class="sub">NASA LP DAAC / ESA Copernicus</span></td><td><span class="res">100 m Sentinel-2 (desde 20 m); 500 m MODIS</span></td><td class="num"><span class="lag-pill lag-0">2 días</span></td><td class="num">6 nov</td><td class="num">2026-W43</td><td><span class="chip chip-final">final</span></td><td class="method">medido hoy</td><td class="notes">Ópticos: un día publicado puede estar totalmente nublado sobre Cali. Por componente: modis_terra_aqua_indices: 2026-11-06; sentinel2_indices: 2026-11-06.<span class="vars">4 columnas: gee_ndvi, gee_ndwi, gee_s2_ndvi, gee_s2_ndwi</span></td></tr><tr><td><span class="name">Sentinel-1 radar</span><span class="sub">ESA Copernicus</span></td><td><span class="res">10 m (radar C, entregado a 30 m)</span></td><td class="num"><span class="lag-pill lag-0">2 días</span></td><td class="num">6 nov</td><td class="num">2026-W43</td><td><span class="chip chip-final">final</span></td><td class="method">medido hoy</td><td class="notes">Radar: ve a través de las nubes; una pasada cada ~6 días (S1C+S1D).<span class="vars">3 columnas: sentinel1_vv_db, sentinel1_vh_db, sentinel1_vh_vv_db</span></td></tr><tr><td><span class="name">SMAP L4</span><span class="sub">NASA SMAP</span></td><td><span class="res">9 km</span></td><td class="num"><span class="lag-pill lag-0">3 días</span></td><td class="num">5 nov</td><td class="num">2026-W43</td><td><span class="chip chip-final">final</span></td><td class="method">medido hoy</td><td class="notes">Asimilación del radiómetro SMAP en un modelo de superficie (L4).<span class="vars">2 columnas: smap_sm_surface, smap_sm_rootzone</span></td></tr><tr><td><span class="name">VIIRS luces nocturnas</span><span class="sub">NASA Black Marble</span></td><td><span class="res">~460 m luces nocturnas; 1 km LST</span></td><td class="num"><span class="lag-pill lag-2">9 días</span></td><td class="num">30 oct</td><td class="num">2026-W42</td><td><span class="chip chip-final">final</span></td><td class="method">medido hoy</td><td class="notes">Las imágenes de los últimos días se publican vacías y se llenan después.<span class="vars">1 columna: viirs_ntl</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  
+  <section>
+    <h2>73 variables diarias seleccionadas</h2>
+    <p>Una columna por magnitud física: entre fuentes que miden lo mismo se eligió la más reciente, luego la de mejor
+    resolución. La latencia efectiva es el último día con un valor válido sobre Cali en Gold de 100 m: en las fuentes ópticas (MODIS, Sentinel-2, Landsat) y en el radar con revisita (Sentinel-1) es mayor que la de publicación porque hay días nublados o sin pasada.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Columna Gold</th><th scope="col">Publicado hasta</th><th scope="col">Latencia de publicación</th>
+        <th scope="col">Último dato válido</th><th scope="col">Latencia efectiva</th><th scope="col">Cuándo sale</th></tr></thead>
+        <tbody><tr class="group"><th colspan="6" scope="colgroup">Precipitación</th></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">GPM IMERG V07 · 1 variable · publica con 2 d</th></tr><tr><td><code>imerg_precip</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">5 nov</td><td class="num"><span class="lag-pill lag-0">3 d</span></td><td>el día D se tiene el D+2</td></tr><tr class="group"><th colspan="6" scope="colgroup">Reanálisis agroclimático</th></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">AgERA5 · 21 variables · publica con 8 d</th></tr><tr><td><code>agera5_temp_mean</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_temp_max</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_temp_min</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_dewpoint_mean</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_solar_radiation</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_vapour_pressure</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_rh_06h</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_rh_15h</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_wind_speed</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_temp_day_max</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_temp_day_mean</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_temp_night_mean</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_temp_night_min</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_rh_09h</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_rh_12h</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_rh_18h</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_rh_max</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_rh_min</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_vpd_tmax</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_et0</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr><td><code>agera5_precip_hours_frac</code></td><td class="num">31 oct</td><td class="num">8 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+8</td></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">ERA5-Land · 13 variables · publica con 7 d</th></tr><tr><td><code>era5land_skin_temp</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_surface_pressure</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_evaporation</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_u_wind_10m</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_v_wind_10m</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_soil_temp_l1</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_sensible_heat_flux</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_net_thermal_radiation</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_thermal_radiation_down</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_runoff</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_lai_high</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_lai_low</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr><td><code>era5land_albedo</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr class="group"><th colspan="6" scope="colgroup">Geoestacionario (nubes y vapor)</th></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">GOES-East ABI · 14 variables · publica con 1 d</th></tr><tr><td><code>goes_bt_c08</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_bt_c09</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_bt_c10</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_bt_c11</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_bt_c13</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_bt_c14</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_bt_c15</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_bt_c13_min</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_btd_c13_c15</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_btd_c08_c13</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_btd_c11_c14</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_cold_cloud_frac_235</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_cold_cloud_frac_220</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr><td><code>goes_refl_c02_day</code></td><td class="num">7 nov</td><td class="num">1 d</td><td class="num">7 nov</td><td class="num"><span class="lag-pill lag-0">1 d</span></td><td>el día D se tiene el D+1</td></tr><tr class="group"><th colspan="6" scope="colgroup">Superficie desde satélite</th></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">MODIS LST, nubes, MAIAC · 7 variables · publica con 2-3 d</th></tr><tr><td><code>modis_lst_day_terra</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">5 nov</td><td class="num"><span class="lag-pill lag-0">3 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>modis_lst_night_terra</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">3 nov</td><td class="num"><span class="lag-pill lag-1">5 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>modis_lst_day_aqua</code></td><td class="num">5 nov</td><td class="num">3 d</td><td class="num">4 nov</td><td class="num"><span class="lag-pill lag-1">4 d</span></td><td>el día D se tiene el D+3</td></tr><tr><td><code>modis_lst_night_aqua</code></td><td class="num">5 nov</td><td class="num">3 d</td><td class="num">30 oct</td><td class="num"><span class="lag-pill lag-2">9 d</span></td><td>el día D se tiene el D+3</td></tr><tr><td><code>modis_cloud_frac</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">5 nov</td><td class="num"><span class="lag-pill lag-0">3 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>modis_column_wv</code></td><td class="num">5 nov</td><td class="num">3 d</td><td class="num">2 nov</td><td class="num"><span class="lag-pill lag-1">6 d</span></td><td>el día D se tiene el D+3</td></tr><tr><td><code>modis_aod_055</code></td><td class="num">5 nov</td><td class="num">3 d</td><td class="num">2 nov</td><td class="num"><span class="lag-pill lag-1">6 d</span></td><td>el día D se tiene el D+3</td></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">Landsat 8/9 · 1 variable · publica con 7 d</th></tr><tr><td><code>landsat_lst</code></td><td class="num">1 nov</td><td class="num">7 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+7</td></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">MODIS/Sentinel-2 índices · 10 variables · publica con 2 d</th></tr><tr><td><code>gee_ndvi</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">4 nov</td><td class="num"><span class="lag-pill lag-1">4 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>gee_ndwi</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">4 nov</td><td class="num"><span class="lag-pill lag-1">4 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>gee_evi</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">4 nov</td><td class="num"><span class="lag-pill lag-1">4 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>gee_mndwi</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">4 nov</td><td class="num"><span class="lag-pill lag-1">4 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>gee_s2_ndvi</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>gee_s2_ndwi</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>gee_s2_evi</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>gee_s2_mndwi</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>gee_s2_ndre</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>gee_s2_bsi</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">1 nov</td><td class="num"><span class="lag-pill lag-1">7 d</span></td><td>el día D se tiene el D+2</td></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">Sentinel-1 radar · 3 variables · publica con 2 d</th></tr><tr><td><code>sentinel1_vv_db</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>sentinel1_vh_db</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+2</td></tr><tr><td><code>sentinel1_vh_vv_db</code></td><td class="num">6 nov</td><td class="num">2 d</td><td class="num">31 oct</td><td class="num"><span class="lag-pill lag-2">8 d</span></td><td>el día D se tiene el D+2</td></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">SMAP L4 · 2 variables · publica con 3 d</th></tr><tr><td><code>smap_sm_surface</code></td><td class="num">5 nov</td><td class="num">3 d</td><td class="num">4 nov</td><td class="num"><span class="lag-pill lag-1">4 d</span></td><td>el día D se tiene el D+3</td></tr><tr><td><code>smap_sm_rootzone</code></td><td class="num">5 nov</td><td class="num">3 d</td><td class="num">4 nov</td><td class="num"><span class="lag-pill lag-1">4 d</span></td><td>el día D se tiene el D+3</td></tr><tr class="subgroup"><th colspan="6" scope="rowgroup">VIIRS luces nocturnas · 1 variable · publica con 9 d</th></tr><tr><td><code>viirs_ntl</code></td><td class="num">30 oct</td><td class="num">9 d</td><td class="num">30 oct</td><td class="num"><span class="lag-pill lag-2">9 d</span></td><td>el día D se tiene el D+9</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <footer>Generado por <code>examples/cali_operational/make_latency_report.py</code> a partir de
+  <code>climate-pipeline availability</code>. "Medido hoy" consulta el catálogo del proveedor (Earth Engine y CHC); AgERA5 y MSWEP usan la latencia configurada porque su consulta en vivo requiere la cola del CDS o
+  credenciales de Google Drive. El rezago se cuenta en días desde el último día completo sobre el AOI.</footer>
+</main>
+</body>
+</html>

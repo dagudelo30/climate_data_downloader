@@ -1,0 +1,14 @@
+* text=auto eol=lf
+
+# Binary assets: never diff or normalise line endings
+*.gif binary
+*.png binary
+*.tif binary
+*.parquet binary
+*.shp binary
+*.shx binary
+*.dbf binary
+
+# GitHub language statistics and diffs
+outputs/** linguist-documentation
+uv.lock linguist-generated

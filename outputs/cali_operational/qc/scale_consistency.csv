@@ -1,0 +1,13 @@
+fine,grid,date,column,cells,mean_abs_diff,correlation
+100m,500m,2026-08-30,imerg_precip,570,0.001,0.9987
+100m,500m,2026-08-30,agera5_temp_max,570,0.004,0.9999
+100m,500m,2026-08-30,goes_cold_cloud_frac_235,570,0.0,0.9982
+100m,500m,2026-08-30,modis_cloud_frac,375,0.0,
+100m,1km,2026-08-30,imerg_precip,160,0.0082,0.956
+100m,1km,2026-08-30,agera5_temp_max,160,0.0129,0.9993
+100m,1km,2026-08-30,goes_cold_cloud_frac_235,160,0.0001,0.9964
+100m,1km,2026-08-30,modis_cloud_frac,105,0.0,
+100m,5km,2026-08-30,imerg_precip,13,0.0868,0.6278
+100m,5km,2026-08-30,agera5_temp_max,13,0.1427,0.9838
+100m,5km,2026-08-30,goes_cold_cloud_frac_235,13,0.0005,0.9851
+100m,5km,2026-08-30,modis_cloud_frac,10,0.0,

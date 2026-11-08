@@ -1,0 +1,20 @@
+column,units,description,weekly_rule,resampling
+cell_id,,row * width + col on the Gold grid (key to rebuild rasters),,
+date,,observation date (UTC day),,
+latitude,,cell centre (WGS84),,
+longitude,,cell centre (WGS84),,
+agera5_dewpoint_mean,degC,"AgERA5 2 m dewpoint temperature, 24 h mean",mean if >= 4 valid days,bilinear
+agera5_precip,mm d-1,AgERA5 daily total precipitation,sum if >= 7 valid days,average
+agera5_rh_06h,%,AgERA5 2 m relative humidity at 06:00 local solar time,mean if >= 4 valid days,bilinear
+agera5_rh_15h,%,AgERA5 2 m relative humidity at 15:00 local solar time,mean if >= 4 valid days,bilinear
+agera5_solar_radiation,MJ m-2 d-1,AgERA5 daily surface solar radiation downwards,mean if >= 4 valid days,bilinear
+agera5_temp_max,degC,"AgERA5 2 m air temperature, 24 h maximum",mean if >= 4 valid days,bilinear
+agera5_temp_mean,degC,"AgERA5 2 m air temperature, 24 h mean",mean if >= 4 valid days,bilinear
+agera5_temp_min,degC,"AgERA5 2 m air temperature, 24 h minimum",mean if >= 4 valid days,bilinear
+agera5_vapour_pressure,hPa,"AgERA5 vapour pressure, 24 h mean",mean if >= 4 valid days,bilinear
+agera5_wind_speed,m s-1,"AgERA5 10 m wind speed, 24 h mean",mean if >= 4 valid days,bilinear
+chirps_precip,mm d-1,CHIRPS daily precipitation (0.05°),sum if >= 7 valid days,average
+gee_ndvi,1,MODIS Terra+Aqua (MOD09GA/MYD09GA) NDVI (cloud-masked),mean if >= 1 valid days,average
+gee_ndwi,1,"MODIS Terra+Aqua (MOD09GA/MYD09GA) NDWI, Gao 1996 (cloud-masked)",mean if >= 1 valid days,average
+gee_s2_ndvi,1,Sentinel-2 L2A + Cloud Score+ (100 m) NDVI (cloud-masked),mean if >= 1 valid days,average
+gee_s2_ndwi,1,"Sentinel-2 L2A + Cloud Score+ (100 m) NDWI, Gao 1996 (cloud-masked)",mean if >= 1 valid days,average

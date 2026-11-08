@@ -1,0 +1,39 @@
+{
+  "chirps": {
+    "source": "chirps",
+    "available_until": "2026-10-21",
+    "final_until": "2026-09-06",
+    "window_start": "2026-01-01",
+    "window_end": "2026-05-31",
+    "requests": 0,
+    "days": 0,
+    "reasons": {
+      "up_to_date": 151
+    }
+  },
+  "agera5": {
+    "source": "agera5",
+    "available_until": "2026-10-20",
+    "final_until": "2026-10-20",
+    "window_start": "2026-01-01",
+    "window_end": "2026-05-31",
+    "requests": 0,
+    "days": 0,
+    "reasons": {
+      "up_to_date": 1510
+    }
+  },
+  "gee": {
+    "source": "gee",
+    "available_until": "2026-10-24",
+    "final_until": "2026-10-24",
+    "window_start": "2026-01-01",
+    "window_end": "2026-05-31",
+    "requests": 240,
+    "days": 120,
+    "reasons": {
+      "up_to_date": 364,
+      "retry_missing": 240
+    }
+  }
+}

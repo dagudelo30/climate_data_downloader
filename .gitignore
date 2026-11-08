@@ -1,33 +1,56 @@
-
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Virtual environment
 .venv/
-env/
-venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
 
-# Jupyter Notebook checkpoints
+# Notebooks
 .ipynb_checkpoints/
 
-# VSCode settings
+# Editors / OS
 .vscode/
+.idea/
+.DS_Store
+Thumbs.db
 
-# Logs
-logs/
-
-# Config / secret files
+# Secrets (never commit credentials)
 .env
-*.yaml
+.env.*
+!.env.example
+.cdsapirc
+*.json.key
+*service-account*.json
+client_secret*.json
+token*.json
+data/auxiliary/tokens/
+credentials/
 
-# Data folders
+# Local assistant / tooling state
+.claude/
+
+# Medallion data lake (managed by the pipeline, never versioned)
+data/bronze/
+data/silver/
+data/gold/
+data/state/
+data/tmp/
+# Lake of the operational example (examples/cali_operational)
+data/operational/
+# Run reports of local/CI runs (anchored: the example evidence keeps its own reports/)
+/reports/
+/logs/
+
+# Old notebook layout
 data/raw/
 data/interim/
 data/processed/
-data/auxiliary/tokens/
 
-# MacOS/Windows system files
-.DS_Store
-Thumbs.db
+# Optional per-field GIFs (make_weekly_gif.py --per-field); the versioned GIFs cover every field
+outputs/*/animations/variables/

@@ -1,0 +1,118 @@
+{
+  "ok": true,
+  "started_at": "2026-10-28T15:17:47+00:00",
+  "finished_at": "2026-10-28T15:18:00+00:00",
+  "request": {
+    "aoi": "data/auxiliary/shapefiles/cali/cali.shp",
+    "aoi_bounds": [
+      -76.59076,
+      3.33182,
+      -76.46125,
+      3.50189
+    ],
+    "sources": [
+      "chirps",
+      "agera5",
+      "gee"
+    ],
+    "start_date": "2026-01-01",
+    "end_date": "2026-05-31",
+    "target_grids": [
+      {
+        "name": "1km",
+        "spec": "EPSG:9377@1000"
+      },
+      {
+        "name": "5km",
+        "spec": "EPSG:9377@5000"
+      }
+    ],
+    "output_format": "parquet",
+    "incremental": false,
+    "force": false,
+    "today": "2026-10-28"
+  },
+  "sources": [
+    {
+      "source": "chirps",
+      "plan": {
+        "source": "chirps",
+        "available_until": "2026-10-21",
+        "final_until": "2026-09-06",
+        "window_start": "2026-01-01",
+        "window_end": "2026-05-31",
+        "requests": 0,
+        "days": 0,
+        "reasons": {
+          "up_to_date": 151
+        }
+      },
+      "fetched": 0,
+      "final": 0,
+      "prelim": 0,
+      "missing": 0,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 0,
+      "silver_failures": 0,
+      "quality": {},
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "agera5",
+      "plan": {
+        "source": "agera5",
+        "available_until": "2026-10-20",
+        "final_until": "2026-10-20",
+        "window_start": "2026-01-01",
+        "window_end": "2026-05-31",
+        "requests": 0,
+        "days": 0,
+        "reasons": {
+          "up_to_date": 1510
+        }
+      },
+      "fetched": 0,
+      "final": 0,
+      "prelim": 0,
+      "missing": 0,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 0,
+      "silver_failures": 0,
+      "quality": {},
+      "error": null,
+      "ok": true
+    },
+    {
+      "source": "gee",
+      "plan": {
+        "source": "gee",
+        "available_until": "2026-10-24",
+        "final_until": "2026-10-24",
+        "window_start": "2026-01-01",
+        "window_end": "2026-05-31",
+        "requests": 240,
+        "days": 120,
+        "reasons": {
+          "up_to_date": 364,
+          "retry_missing": 240
+        }
+      },
+      "fetched": 0,
+      "final": 0,
+      "prelim": 0,
+      "missing": 240,
+      "failures": 0,
+      "failure_samples": [],
+      "silver_days": 0,
+      "silver_failures": 0,
+      "quality": {},
+      "error": null,
+      "ok": true
+    }
+  ],
+  "gold": [],
+  "gold_errors": {}
+}
