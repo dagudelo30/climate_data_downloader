@@ -42,6 +42,7 @@ uv run climate-pipeline build-static --aoi-path "$AOI" --grid-name 100m --grid-n
 
 # 4) Evidence: Gold inventory per grid (columns, coverage, last date with data)
 #    and the operational latency page.
+uv run python examples/cali_operational/make_figures.py --data-root "$CLIMATE_DATA_ROOT" --output-dir "$OUT"
 uv run python examples/cali_operational/summarize_gold.py --data-root "$CLIMATE_DATA_ROOT" --output-dir "$OUT"
 uv run python examples/cali_operational/make_latency_report.py "$OUT/reports/availability_$(date +%F).json" \
   --output "$OUT/latencia_operativa.html"

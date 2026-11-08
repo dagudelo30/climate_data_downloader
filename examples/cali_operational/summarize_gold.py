@@ -220,6 +220,27 @@ def main() -> None:
         "",
         "Detalle por columna: [`tables/column_inventory.csv`](tables/column_inventory.csv).",
     ]
+    figures = [
+        (
+            "maps/resoluciones_semana.png",
+            "Variables clave de la última semana completa en 100 m, 500 m, 1 km y 5 km",
+        ),
+        ("maps/estaticas_resoluciones.png", "Terreno y forma urbana en las cuatro resoluciones"),
+        (
+            "animations/semanal_resoluciones.gif",
+            "Precipitación IMERG y Tmáx AgERA5 semana a semana, cuatro resoluciones",
+        ),
+        ("timeseries/series_diarias.png", "Promedio diario sobre Cali de una variable por familia"),
+        ("maps/variables_100m.png", "Una variable por familia, 100 m"),
+        ("maps/variables_500m.png", "Una variable por familia, 500 m"),
+        ("maps/variables_1km.png", "Una variable por familia, 1 km"),
+        ("maps/variables_5km.png", "Una variable por familia, 5 km"),
+    ]
+    present = [(path, caption) for path, caption in figures if (args.output_dir / path).exists()]
+    if present:
+        lines += ["", "## Figuras", "", "Generadas con `examples/cali_operational/make_figures.py`.", ""]
+        for path, caption in present:
+            lines += [f"**{caption}**", "", f"![{caption}]({path})", ""]
     if availability:
         table = pd.DataFrame(
             [
