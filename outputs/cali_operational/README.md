@@ -88,6 +88,51 @@ Generadas con `examples/cali_operational/make_figures.py`.
 ![Una variable por familia, 5 km](maps/variables_5km.png)
 
 
+## Semana a semana en las cuatro resoluciones
+
+Precipitación IMERG, Tmáx AgERA5, nube fría GOES y NDVI Sentinel-2 por semana epidemiológica, en 100 m, 500 m, 1 km y 5 km, con la misma escala de color en todas las semanas. La última semana puede salir incompleta: IMERG exige los 7 días para la suma y AgERA5 publica con ~8 días de rezago.
+
+**2026-W35**
+
+![2026-W35](maps/semanas/resoluciones_2026-W35.png)
+
+**2026-W36**
+
+![2026-W36](maps/semanas/resoluciones_2026-W36.png)
+
+**2026-W37**
+
+![2026-W37](maps/semanas/resoluciones_2026-W37.png)
+
+**2026-W38**
+
+![2026-W38](maps/semanas/resoluciones_2026-W38.png)
+
+**2026-W39**
+
+![2026-W39](maps/semanas/resoluciones_2026-W39.png)
+
+**2026-W40**
+
+![2026-W40](maps/semanas/resoluciones_2026-W40.png)
+
+**2026-W41**
+
+![2026-W41](maps/semanas/resoluciones_2026-W41.png)
+
+**2026-W42**
+
+![2026-W42](maps/semanas/resoluciones_2026-W42.png)
+
+**2026-W43**
+
+![2026-W43](maps/semanas/resoluciones_2026-W43.png)
+
+**2026-W44**
+
+![2026-W44](maps/semanas/resoluciones_2026-W44.png)
+
+
 ## Disponibilidad operativa al 2026-11-08
 
 | source | latest_day | lag_days | last_complete_epiweek | status | method |

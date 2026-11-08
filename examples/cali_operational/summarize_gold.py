@@ -236,11 +236,25 @@ def main() -> None:
         ("maps/variables_1km.png", "Una variable por familia, 1 km"),
         ("maps/variables_5km.png", "Una variable por familia, 5 km"),
     ]
+    weekly_maps = sorted((args.output_dir / "maps/semanas").glob("resoluciones_*.png"))
     present = [(path, caption) for path, caption in figures if (args.output_dir / path).exists()]
     if present:
         lines += ["", "## Figuras", "", "Generadas con `examples/cali_operational/make_figures.py`.", ""]
         for path, caption in present:
             lines += [f"**{caption}**", "", f"![{caption}]({path})", ""]
+    if weekly_maps:
+        lines += [
+            "",
+            "## Semana a semana en las cuatro resoluciones",
+            "",
+            "Precipitación IMERG, Tmáx AgERA5, nube fría GOES y NDVI Sentinel-2 por semana epidemiológica, en 100 m,"
+            " 500 m, 1 km y 5 km, con la misma escala de color en todas las semanas. La última semana puede salir"
+            " incompleta: IMERG exige los 7 días para la suma y AgERA5 publica con ~8 días de rezago.",
+            "",
+        ]
+        for path in weekly_maps:
+            week = path.stem.removeprefix("resoluciones_")
+            lines += [f"**{week}**", "", f"![{week}](maps/semanas/{path.name})", ""]
     if availability:
         table = pd.DataFrame(
             [
