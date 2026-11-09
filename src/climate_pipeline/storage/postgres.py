@@ -26,6 +26,7 @@ import hashlib
 import io
 import logging
 import re
+import threading
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import date, datetime
@@ -356,12 +357,14 @@ class PostgresCatalog(Catalog):
 
     def __init__(self, database: Database) -> None:
         self.db = database
+        #: Sources are ingested in parallel threads that share this connection.
+        self._lock = threading.RLock()
 
     def record(self, entries: Iterable[CatalogEntry]) -> None:
         rows = [tuple(entry.to_row()[column] for column in COLUMNS) for entry in entries]
         if not rows:
             return
-        with self.db.transaction() as connection, connection.cursor() as cursor:
+        with self._lock, self.db.transaction() as connection, connection.cursor() as cursor:
             cursor.executemany(
                 """
                 INSERT INTO ingest_manifest (source, variable, date, layer, status, path, origin, updated_ns)
@@ -378,7 +381,8 @@ class PostgresCatalog(Catalog):
             "SELECT source, variable, to_char(date, 'YYYY-MM-DD') AS date, layer, status, path, origin, "
             "updated_ns FROM ingest_manifest WHERE {} ORDER BY source, layer, variable, date"
         ).format(where)
-        frame = read_frame(self.db.connection(), query, parameters)
+        with self._lock:
+            frame = read_frame(self.db.connection(), query, parameters)
         if frame.empty:
             return empty_entries()
         frame[["path", "origin"]] = frame[["path", "origin"]].fillna("")
@@ -393,6 +397,10 @@ class PostgresCatalog(Catalog):
         return self._select(sql.SQL("source NOT LIKE %s"), [rf"{GOLD_PREFIX.replace('_', r'\_')}%"])
 
     def sources(self) -> list[str]:
+        with self._lock:
+            return self._sources()
+
+    def _sources(self) -> list[str]:
         rows = (
             self.db.connection()
             .execute(
@@ -411,7 +419,7 @@ class PostgresCatalog(Catalog):
         rows["date"] = pd.to_datetime(rows["date"]).dt.date
         rows[["path", "origin"]] = rows[["path", "origin"]].fillna("")
         rows["updated_ns"] = rows["updated_ns"].astype("int64")
-        with self.db.transaction() as connection:
+        with self._lock, self.db.transaction() as connection:
             connection.execute(
                 "CREATE TEMP TABLE _manifest (LIKE ingest_manifest INCLUDING DEFAULTS) ON COMMIT DROP"
             )
@@ -427,6 +435,10 @@ class PostgresCatalog(Catalog):
         return len(rows)
 
     def silver_versions(self) -> dict[tuple[str, date], int]:
+        with self._lock:
+            return self._silver_versions()
+
+    def _silver_versions(self) -> dict[tuple[str, date], int]:
         rows = (
             self.db.connection()
             .execute(

@@ -34,6 +34,7 @@ are removed before computing the indices.
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -236,7 +237,20 @@ def resolve_mask(product: GeeProduct, variant: str) -> Callable[[Any], Any] | No
     return MASKS[product.mask][variant] if product.mask else None
 
 
+_EE_LOCK = threading.Lock()
+_EE_INITIALISED: dict[tuple[str | None, str | None], Any] = {}
+
+
 def initialize_earth_engine(project: str | None, credentials_file: str | None) -> Any:
+    """Initialise Earth Engine once per process and credentials (sources run in parallel threads)."""
+    key = (project, credentials_file)
+    with _EE_LOCK:
+        if key not in _EE_INITIALISED:
+            _EE_INITIALISED[key] = _initialize_earth_engine(project, credentials_file)
+        return _EE_INITIALISED[key]
+
+
+def _initialize_earth_engine(project: str | None, credentials_file: str | None) -> Any:
     """Initialise Earth Engine.
 
     ``credentials_file`` may be a service-account key (``type: service_account``) or any

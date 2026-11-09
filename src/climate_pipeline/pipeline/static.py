@@ -95,39 +95,8 @@ def fetch_copernicus_dem(
     return dem.rio.write_crs("EPSG:4326").rio.write_transform(transform)
 
 
-def static_covariates_frame(dem: xr.DataArray, grid: GridSpec, aoi: AreaOfInterest) -> pd.DataFrame:
-    terrain = terrain_derivatives(dem)
-    mask = aoi_mask(grid.template(), aoi, all_touched=True).reshape(-1)
-    cell_ids = np.flatnonzero(mask)
-    lon, lat = grid.lonlat()
-    frame = pd.DataFrame(
-        {
-            "cell_id": cell_ids.astype("int64"),
-            "latitude": lat.reshape(-1)[cell_ids],
-            "longitude": lon.reshape(-1)[cell_ids],
-        }
-    )
-    for name, column in STATIC_COLUMNS.items():
-        layer = terrain[name].rio.write_nodata(np.nan, encoded=False)
-        resampled = layer.rio.reproject(
-            dst_crs=grid.crs,
-            shape=grid.shape,
-            transform=grid.affine,
-            resampling=RASTERIO_RESAMPLING[ResamplingMethod.AVERAGE],
-            nodata=np.nan,
-        )
-        frame[column] = resampled.values.reshape(-1)[cell_ids].astype("float32")
-    return frame
-
-
-def terrain_layers(grid: GridSpec) -> dict[str, np.ndarray]:
-    """Elevation, slope and aspect components area-averaged onto the full ``grid``."""
-    from climate_pipeline.pipeline.urban import grid_bounds_wgs84
-
-    grid_resolution_deg = (
-        grid.resolution[0] if grid.is_geographic else grid.resolution[0] / _METERS_PER_DEGREE
-    )
-    dem = fetch_copernicus_dem(grid_bounds_wgs84(grid, margin_cells=2), grid_resolution_deg / 10.0)
+def terrain_to_grid(dem: xr.DataArray, grid: GridSpec) -> dict[str, np.ndarray]:
+    """Elevation, slope, aspect components, TPI and roughness of ``dem`` area-averaged onto ``grid``."""
     terrain = terrain_derivatives(dem)
     layers = {}
     for name, column in STATIC_COLUMNS.items():
@@ -141,6 +110,17 @@ def terrain_layers(grid: GridSpec) -> dict[str, np.ndarray]:
         )
         layers[column] = resampled.values.astype("float32")
     return layers
+
+
+def terrain_layers(grid: GridSpec) -> dict[str, np.ndarray]:
+    """Elevation, slope and aspect components area-averaged onto the full ``grid``."""
+    from climate_pipeline.pipeline.urban import grid_bounds_wgs84
+
+    grid_resolution_deg = (
+        grid.resolution[0] if grid.is_geographic else grid.resolution[0] / _METERS_PER_DEGREE
+    )
+    dem = fetch_copernicus_dem(grid_bounds_wgs84(grid, margin_cells=2), grid_resolution_deg / 10.0)
+    return terrain_to_grid(dem, grid)
 
 
 STATIC_LAYERS = ("terrain", "urban", "osm")

@@ -9,6 +9,7 @@ from datetime import date
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 from climate_pipeline.config import Settings
 from climate_pipeline.domain.aoi import AreaOfInterest
@@ -138,20 +139,27 @@ class GoldBuilder:
         raise ConfigurationError("no Silver data available to derive a default target grid")
 
     # --- daily ----------------------------------------------------------------------
-    def resample_day(self, day: date, grid: GridSpec) -> tuple[dict[str, np.ndarray], set[str]]:
+    def load_silver(self, day: date) -> dict[str, xr.Dataset]:
+        """Every Silver dataset of ``day`` (read once, shared by every target grid)."""
+        return {
+            source: standardize_spatial_dims(read_netcdf(path))
+            for source, path in self.lake.silver_files_for(day).items()
+        }
+
+    def resample_day(
+        self, day: date, grid: GridSpec, silver: dict[str, xr.Dataset] | None = None
+    ) -> tuple[dict[str, np.ndarray], set[str]]:
         """Every Silver variable of ``day`` resampled onto the full ``grid`` (2-D arrays), and the
-        sources whose Silver was read."""
+        sources whose Silver was read. ``silver`` reuses datasets already loaded for another grid."""
+        silver = self.load_silver(day) if silver is None else silver
         layers: dict[str, np.ndarray] = {}
-        sources: set[str] = set()
-        for source, path in self.lake.silver_files_for(day).items():
-            sources.add(source)
-            dataset = standardize_spatial_dims(read_netcdf(path))
+        for source, dataset in silver.items():
             for name in dataset.data_vars:
                 if str(name).lower() in NON_DATA_VARIABLES:
                     continue
                 if not self.variables.has(source, str(name)):
                     raise ConfigurationError(
-                        f"Silver {path.name} holds {source}/{name}, unknown to the variable catalog: "
+                        f"Silver of {source} on {day} holds {name}, unknown to the variable catalog: "
                         "run with the same --config used for ingestion"
                     )
                 spec = self.variables.get(source, str(name))
@@ -159,7 +167,7 @@ class GoldBuilder:
                     continue  # stale Silver of a variable that is no longer selected
                 resampled = resample_to_grid(dataset[name], grid, spec.resampling)
                 layers[spec.gold_column] = resampled.values.astype("float32")
-        return layers, sources
+        return layers, set(silver)
 
     def frame_from_layers(
         self,

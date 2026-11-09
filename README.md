@@ -128,6 +128,7 @@ Un YAML (`--config`) solo necesita las claves que cambia; el resto sale de `DEFA
 | `run.output_format`, `run.static`, `run.max_behind_days` | backend de `run` (`parquet` \| `duckdb` \| `postgres`), capas y año de las estáticas, tolerancia de atraso |
 | `clip_mode` | `polygon` (por defecto) o `bbox`; ambos conservan todo píxel que toque el AOI |
 | `deduplicate` | `true`: una columna por magnitud física (regla de redundancia) |
+| `parallel_sources` | fuentes que se descargan a la vez (por defecto 4); cada fuente además paraleliza sus propias peticiones (`max_workers`) |
 | `sources.<fuente>.latency` | `prelim_lag_days`, `final_lag_days`, `lookback_days` (ventana de reintentos y de `--incremental`) |
 | `sources.<fuente>.max_workers`, `.variables`, `.options` | peticiones en paralelo, subconjunto de variables, opciones (`gee.products`, `gee.cloud_mask`, `utc_offset_hours`, `chirps.version`, …) |
 
@@ -334,6 +335,19 @@ parecería una semana seca, así que queda en NA.
   Un error real (credenciales, red, archivo corrupto) se aísla por tarea y fuente; la CLI sale con 1.
 * **Cobertura** (`coverage`, y al final de cada `sync`): por fuente y grilla, `in_gold`,
   `no_valid_pixels`, `upstream_missing`, huecos (`not_built`, `not_requested`) y `behind_days`.
+
+## Rendimiento
+
+| Paso | Qué lo hace rápido |
+|---|---|
+| Descarga | solo `(variable, día)` que faltan según la latencia y el catálogo; **fuentes en paralelo** (`parallel_sources`), y dentro de cada fuente peticiones en paralelo (AgERA5 manda varios meses a la cola del CDS a la vez); ventanas del AOI, nunca archivos globales |
+| Silver → Gold | cada día de Silver se lee **una vez** y se remuestrea a todas las grillas; `rasterio.warp.reproject` directo sobre numpy (sin el envoltorio de xarray: ~1.7× más rápido); Gold solo reconstruye los días cuyo Silver cambió, por fuente |
+| PostgreSQL | carga y lectura con `COPY` vía Arrow (sin bucles fila a fila); tablas particionadas por grilla con clave `(grid_name, date, cell_id)`, que sirve tanto al upsert como a los filtros por fecha |
+| Consultas sobre Parquet | particiones por día y semana con zstd y `cell_id` ordenado; DuckDB lee solo las columnas y archivos pedidos |
+
+Referencias medidas en una Mac (Apple Silicon): un año de las 10 fuentes ~40 min (dominado por la cola
+del CDS), Gold de un día en 100 m ~0.5 s, upsert de un día de 100 m en Postgres ~0.5 s, carga de un año
+completo a Postgres (`db import-lake`) ~4 min.
 
 ## CI/CD (GitHub Actions)
 
