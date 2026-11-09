@@ -147,6 +147,7 @@ Variables de entorno (`.env`): `CLIMATE_DATA_ROOT`, `DATABASE_URL`, `DATABASE_SC
 | `availability` | Consulta en vivo a cada proveedor: último día completo, rezago y última semana epidemiológica completa. |
 | `db init` · `db status` · `db import-lake` | Migraciones y diccionario de variables · grillas, filas y frescura por fuente · carga de un lago local. |
 | `make-raster` | Tabla Gold → GeoTIFF/COG (día, semana o estática), opcionalmente remuestreado. |
+| `snapshot` | Congela Gold, estado de producto y catálogo con checksums y commit (`data/snapshots/<tag>/`). |
 | `variables` / `catalog` | Catálogo de variables y decisiones de redundancia / estado de la ingesta. |
 
 `uv run climate-pipeline <comando> --help` documenta cada opción.
@@ -177,6 +178,27 @@ Revisadas y no incluidas: estaciones CVC/IDEAM (puntos: flujo de variable objeti
 0.1°), SPEI/TerraClimate/PERSIANN-CDR/CHIRTS (mensuales o con meses de rezago; P − ET₀ con IMERG y
 AgERA5 es el insumo para un SPEI propio). ENSO entra al modelo como índice, no como grilla.
 
+## Licencia, cita y atribución
+
+* **Código:** MIT ([`LICENSE`](LICENSE)).
+* **Cómo citar:** [`CITATION.cff`](CITATION.cff); GitHub muestra el botón "Cite this repository".
+* **Datos derivados** (Gold, snapshots, descargas): heredan las condiciones de cada fuente. La tabla de
+  licencias, las líneas de atribución obligatorias (Copernicus, Sentinel, OpenStreetMap…) y los DOI de
+  cada dataset están en [`ATTRIBUTION.md`](ATTRIBUTION.md). Se sugiere CC BY 4.0 para los datos
+  derivados, salvo `urban_osm_*` (ODbL).
+
+## Procedencia y snapshots
+
+* **¿Qué valores son provisionales?** `gold/product_status.parquet` (día × fuente: `final` | `prelim`) y
+  `gold/product_status_epiweekly.parquet` (días finales y provisionales por semana epidemiológica). En
+  PostgreSQL son las vistas `climate.product_status` y `climate.product_status_epiweekly`. Por ejemplo,
+  hoy todo IMERG 2026 es provisional (Late Run): el modelo puede filtrarlo o ponderarlo.
+* **Snapshots para entrenar y publicar:** `uv run climate-pipeline snapshot --config <yaml> --tag 2026-11-09`
+  congela Gold de todas las grillas, el estado de producto y el catálogo en `data/snapshots/<tag>/`, con un
+  `snapshot.json` (commit de git, hash de la configuración, filas por tabla y SHA-256 de cada archivo).
+  Usa hard links: no ocupa disco extra y no cambia aunque Gold se siga actualizando. `--archive` además
+  genera un `.zip` para adjuntarlo a un Release o a Zenodo.
+
 ## Documentación
 
 | Documento | Contenido |
@@ -188,6 +210,7 @@ AgERA5 es el insumo para un SPEI propio). ENSO entra al modelo como índice, no 
 | [`docs/predictores_por_variable.md`](docs/predictores_por_variable.md) ([HTML](docs/predictores_por_variable.html)) | Literatura por variable objetivo y para dengue (rezagos, no linealidad, Cali), con las columnas Gold de cada predictor |
 | [`outputs/cali_operational/README.md`](outputs/cali_operational/README.md) | Evidencias del ejercicio en tiempo real: filas por grilla, cobertura, consistencia entre escalas, figuras |
 | [`outputs/cali_operational/latencia_operativa.html`](outputs/cali_operational/latencia_operativa.html) | Si consulto hoy, ¿hasta qué día tengo datos? Por fuente y variable |
+| [`ATTRIBUTION.md`](ATTRIBUTION.md) | Licencia, línea de atribución y DOI de cada fuente de datos |
 | [`HANDOFF.md`](HANDOFF.md) | Estado actual, cómo operar, pendientes y decisiones |
 
 `uv run python docs/make_docs.py` regenera los HTML de `docs/` desde el catálogo del código.
@@ -241,7 +264,7 @@ Esquema `climate`, creado por migraciones versionadas (`src/climate_pipeline/sto
 | `gold_epiweekly` | `(grid_name, epi_year, epi_week, cell_id)` | agregados semanales con `<columna>_ndays` |
 | `static_covariates` | `(grid_name, cell_id)` | terreno, forma urbana y OSM |
 | `variable` | `gold_column` | diccionario desde el catálogo del código (unidades, rango, reglas, seleccionada) |
-| `ingest_manifest` | `(source, layer, variable, date)` | estado de cada descarga; vistas `ingest_status` y `source_freshness` |
+| `ingest_manifest` | `(source, layer, variable, date)` | estado de cada descarga; vistas `ingest_status`, `source_freshness`, `product_status` y `product_status_epiweekly` |
 
 * **Upsert por columnas.** Una escritura diaria solo toca las columnas que trae
   (`INSERT … ON CONFLICT DO UPDATE SET <esas columnas>`). Un runner efímero que solo tiene el Silver de
@@ -401,6 +424,11 @@ integración crea y borra su propio esquema.
 
 * **Solo fuentes diarias y operativas hasta hoy.** Se descartaron productos mensuales o con meses de
   rezago: el modelo corre cada semana y necesita covariables con ~2-3 semanas de rezago como máximo.
+* **IMERG: rápido pero provisional.** La versión final de IMERG (corregida con pluviómetros) llega a Earth
+  Engine con ~13 meses de rezago; el Late Run (2 días) es el estándar operativo y es el que entra a Gold
+  (`product_status` lo marca como `prelim`). Para entrenar y hacer downscaling de lluvia se recomienda
+  sumar **CHIRPS v3** (0.05°, con estaciones, preliminar ~7 días y final ~7 semanas):
+  `sources.chirps.variables: [precipitation_flux]` y agregar `chirps` a `run.sources`.
 * **La precipitación de AgERA5 no tiene estructura espacial a escala urbana** (es la de ERA5 a ~0.25°
   replicada): la lluvia espacial viene de IMERG (o CHIRPS).
 * **Sesgo frío de la temperatura de reanálisis en Cali** (orografía suavizada): las covariables de

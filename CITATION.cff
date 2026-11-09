@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "Si usas este software o sus datos derivados, cítalo así y cita también las fuentes de ATTRIBUTION.md."
+title: "climate-pipeline: covariables climáticas y satelitales diarias en tiempo real para Dengue.IA Cali"
+abstract: >-
+  Pipeline Medallion (Bronze → Silver → Gold) que mantiene en tiempo real, en PostgreSQL y Parquet,
+  73 covariables diarias de 10 fuentes operativas (IMERG, AgERA5, ERA5-Land, GOES-East, MODIS,
+  Sentinel-1/2, Landsat, SMAP, VIIRS) y 24 covariables estáticas sobre grillas anidadas de
+  100 m a 5 km (EPSG:9377), con semana epidemiológica, control de calidad y reporte de cobertura.
+type: software
+authors:
+  - family-names: Palomino Montezuma
+    given-names: Andrés Felipe
+    affiliation: Universidad del Valle
+  - family-names: Agudelo
+    given-names: Diego Fernando
+repository-code: "https://github.com/Felipep17/climate-pipeline"
+license: MIT
+version: 0.2.0
+date-released: "2026-11-09"
+keywords:
+  - dengue
+  - climate
+  - remote sensing
+  - downscaling
+  - Earth Engine
+  - Copernicus
+  - epidemiological week
+  - Cali
+references:
+  - type: software
+    title: climate_data_downloader
+    authors:
+      - family-names: Agudelo
+        given-names: Diego Fernando
+    repository-code: "https://github.com/dagudelo30/climate_data_downloader"

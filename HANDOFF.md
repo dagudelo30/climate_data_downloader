@@ -1,6 +1,6 @@
 # Handoff — climate-pipeline (Dengue.IA Cali)
 
-_Actualizado: 2026-11-09 · todo en `main` (PR #4 backend Postgres + ejercicio en tiempo real; PR #5 optimización y limpieza)_
+_Actualizado: 2026-11-09 · todo en `main` (PR #4 backend Postgres + ejercicio en tiempo real; PR #5 optimización y limpieza; PR #6 licencia, atribución y procedencia)_
 
 ## Objetivo
 
@@ -124,6 +124,31 @@ Pruebas: `TEST_DATABASE_URL=postgresql://climate:climate@localhost:5433/climate 
   otro código muerto (los demás avisos son comandos y extractores registrados por decorador).
 * **Documentación:** README con instalación en macOS/Linux y Windows y una sección de rendimiento;
   corregido el enlace roto del DOI de Lowe et al. (2021) en `docs/predictores_por_variable.html`.
+
+## Licencia, atribución y procedencia (PR #6)
+
+* **`LICENSE` (MIT)** con titulares Diego Fernando Agudelo y Andrés Felipe Palomino Montezuma: el repo
+  original (`dagudelo30/climate_data_downloader`) no tenía licencia y Diego tiene commits en el historial.
+  **Pendiente: que Diego confirme la licencia MIT.** También `CITATION.cff` y metadatos en `pyproject.toml`
+  (versión 0.2.0).
+* **`ATTRIBUTION.md`**: licencia, líneas de atribución obligatorias y DOI de cada fuente. Los DOI se
+  verificaron contra doi.org y DataCite; donde el DOI no correspondía a la versión usada (SMAP v7, DEM
+  TanDEM-X, GOES L1b) se dejó el enlace oficial. Se sugiere CC BY 4.0 para los datos derivados, salvo
+  `urban_osm_*` (ODbL, share-alike).
+* **Estado de producto:** `gold/product_status*.parquet` y vistas Postgres `product_status` y
+  `product_status_epiweekly` (migración `0003`). Hoy IMERG tiene 307 días `prelim` y 0 `final` en 2026;
+  todas las demás fuentes son finales.
+* **Snapshots:** `climate-pipeline snapshot --tag <fecha>` congela Gold con hard links, SHA-256, commit y
+  configuración. Primer snapshot: `data/snapshots/2026-11-09/` (commit `c89f0d9`, 2026-01-01 → 2026-11-08).
+  Usar el tag del snapshot en los papers y en el entrenamiento.
+
+## Recomendación sobre la precipitación (no implementada)
+
+No reemplazar IMERG: su Late Run (2 días) es el estándar operativo, y lo que llega tarde (~13 meses) es solo
+la versión final. Para entrenar y hacer downscaling de lluvia conviene **sumar CHIRPS v3** (0.05°, corregida
+con estaciones de Colombia, preliminar ~7 días y final ~7 semanas). Hoy la regla de redundancia la descarta
+por latencia; se activa con `sources.chirps.variables: [precipitation_flux]` y `chirps` en `run.sources`. Hay
+que bajar 2026 desde CHC con 2 peticiones a la vez (CHC responde HTTP 403 a clientes agresivos).
 
 ## Próximo paso acordado: despliegue en AWS (no iniciado)
 
