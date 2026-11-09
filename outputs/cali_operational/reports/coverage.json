@@ -1,0 +1,638 @@
+{
+  "100m": {
+    "start": "2026-01-01",
+    "end": "2026-11-09",
+    "today": "2026-11-09",
+    "max_behind_days": 3,
+    "ok": true,
+    "sources": [
+      {
+        "source": "imerg",
+        "expected_until": "2026-11-07",
+        "days_expected": 311,
+        "states": {
+          "in_gold": 307,
+          "upstream_missing": 4
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-05",
+        "last_processed_day": "2026-11-07",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "agera5",
+        "expected_until": "2026-11-01",
+        "days_expected": 305,
+        "states": {
+          "in_gold": 305
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-01",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "gee",
+        "expected_until": "2026-11-05",
+        "days_expected": 309,
+        "states": {
+          "no_valid_pixels": 171,
+          "in_gold": 138
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-05",
+        "last_processed_day": "2026-11-05",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "era5land",
+        "expected_until": "2026-11-02",
+        "days_expected": 306,
+        "states": {
+          "in_gold": 305,
+          "upstream_missing": 1
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-02",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "modis",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "in_gold": 304,
+          "no_valid_pixels": 6
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-06",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "viirs",
+        "expected_until": "2026-11-03",
+        "days_expected": 307,
+        "states": {
+          "in_gold": 278,
+          "upstream_missing": 29
+        },
+        "gaps": [],
+        "last_valid_day": "2026-10-30",
+        "last_processed_day": "2026-11-03",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "smap",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "in_gold": 308,
+          "upstream_missing": 2
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-04",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "landsat",
+        "expected_until": "2026-11-02",
+        "days_expected": 306,
+        "states": {
+          "in_gold": 21,
+          "upstream_missing": 269,
+          "no_valid_pixels": 16
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-02",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "goes",
+        "expected_until": "2026-11-08",
+        "days_expected": 312,
+        "states": {
+          "in_gold": 302,
+          "upstream_missing": 10
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-08",
+        "last_processed_day": "2026-11-08",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "sentinel1",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "upstream_missing": 229,
+          "in_gold": 81
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-06",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      }
+    ]
+  },
+  "500m": {
+    "start": "2026-01-01",
+    "end": "2026-11-09",
+    "today": "2026-11-09",
+    "max_behind_days": 3,
+    "ok": true,
+    "sources": [
+      {
+        "source": "imerg",
+        "expected_until": "2026-11-07",
+        "days_expected": 311,
+        "states": {
+          "in_gold": 307,
+          "upstream_missing": 4
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-05",
+        "last_processed_day": "2026-11-07",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "agera5",
+        "expected_until": "2026-11-01",
+        "days_expected": 305,
+        "states": {
+          "in_gold": 305
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-01",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "gee",
+        "expected_until": "2026-11-05",
+        "days_expected": 309,
+        "states": {
+          "no_valid_pixels": 171,
+          "in_gold": 138
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-05",
+        "last_processed_day": "2026-11-05",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "era5land",
+        "expected_until": "2026-11-02",
+        "days_expected": 306,
+        "states": {
+          "in_gold": 305,
+          "upstream_missing": 1
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-02",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "modis",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "in_gold": 304,
+          "no_valid_pixels": 6
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-06",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "viirs",
+        "expected_until": "2026-11-03",
+        "days_expected": 307,
+        "states": {
+          "in_gold": 278,
+          "upstream_missing": 29
+        },
+        "gaps": [],
+        "last_valid_day": "2026-10-30",
+        "last_processed_day": "2026-11-03",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "smap",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "in_gold": 308,
+          "upstream_missing": 2
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-04",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "landsat",
+        "expected_until": "2026-11-02",
+        "days_expected": 306,
+        "states": {
+          "in_gold": 21,
+          "upstream_missing": 269,
+          "no_valid_pixels": 16
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-02",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "goes",
+        "expected_until": "2026-11-08",
+        "days_expected": 312,
+        "states": {
+          "in_gold": 302,
+          "upstream_missing": 10
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-08",
+        "last_processed_day": "2026-11-08",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "sentinel1",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "upstream_missing": 229,
+          "in_gold": 81
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-06",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      }
+    ]
+  },
+  "1km": {
+    "start": "2026-01-01",
+    "end": "2026-11-09",
+    "today": "2026-11-09",
+    "max_behind_days": 3,
+    "ok": true,
+    "sources": [
+      {
+        "source": "imerg",
+        "expected_until": "2026-11-07",
+        "days_expected": 311,
+        "states": {
+          "in_gold": 307,
+          "upstream_missing": 4
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-05",
+        "last_processed_day": "2026-11-07",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "agera5",
+        "expected_until": "2026-11-01",
+        "days_expected": 305,
+        "states": {
+          "in_gold": 305
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-01",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "gee",
+        "expected_until": "2026-11-05",
+        "days_expected": 309,
+        "states": {
+          "no_valid_pixels": 171,
+          "in_gold": 138
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-05",
+        "last_processed_day": "2026-11-05",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "era5land",
+        "expected_until": "2026-11-02",
+        "days_expected": 306,
+        "states": {
+          "in_gold": 305,
+          "upstream_missing": 1
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-02",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "modis",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "in_gold": 304,
+          "no_valid_pixels": 6
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-06",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "viirs",
+        "expected_until": "2026-11-03",
+        "days_expected": 307,
+        "states": {
+          "in_gold": 278,
+          "upstream_missing": 29
+        },
+        "gaps": [],
+        "last_valid_day": "2026-10-30",
+        "last_processed_day": "2026-11-03",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "smap",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "in_gold": 308,
+          "upstream_missing": 2
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-04",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "landsat",
+        "expected_until": "2026-11-02",
+        "days_expected": 306,
+        "states": {
+          "in_gold": 21,
+          "upstream_missing": 269,
+          "no_valid_pixels": 16
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-02",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "goes",
+        "expected_until": "2026-11-08",
+        "days_expected": 312,
+        "states": {
+          "in_gold": 302,
+          "upstream_missing": 10
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-08",
+        "last_processed_day": "2026-11-08",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "sentinel1",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "upstream_missing": 229,
+          "in_gold": 81
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-06",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      }
+    ]
+  },
+  "5km": {
+    "start": "2026-01-01",
+    "end": "2026-11-09",
+    "today": "2026-11-09",
+    "max_behind_days": 3,
+    "ok": true,
+    "sources": [
+      {
+        "source": "imerg",
+        "expected_until": "2026-11-07",
+        "days_expected": 311,
+        "states": {
+          "in_gold": 307,
+          "upstream_missing": 4
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-05",
+        "last_processed_day": "2026-11-07",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "agera5",
+        "expected_until": "2026-11-01",
+        "days_expected": 305,
+        "states": {
+          "in_gold": 305
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-01",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "gee",
+        "expected_until": "2026-11-05",
+        "days_expected": 309,
+        "states": {
+          "no_valid_pixels": 171,
+          "in_gold": 138
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-05",
+        "last_processed_day": "2026-11-05",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "era5land",
+        "expected_until": "2026-11-02",
+        "days_expected": 306,
+        "states": {
+          "in_gold": 305,
+          "upstream_missing": 1
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-02",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "modis",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "in_gold": 304,
+          "no_valid_pixels": 6
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-06",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "viirs",
+        "expected_until": "2026-11-03",
+        "days_expected": 307,
+        "states": {
+          "in_gold": 278,
+          "upstream_missing": 29
+        },
+        "gaps": [],
+        "last_valid_day": "2026-10-30",
+        "last_processed_day": "2026-11-03",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "smap",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "in_gold": 308,
+          "upstream_missing": 2
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-04",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "landsat",
+        "expected_until": "2026-11-02",
+        "days_expected": 306,
+        "states": {
+          "in_gold": 21,
+          "upstream_missing": 269,
+          "no_valid_pixels": 16
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-01",
+        "last_processed_day": "2026-11-02",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "goes",
+        "expected_until": "2026-11-08",
+        "days_expected": 312,
+        "states": {
+          "in_gold": 302,
+          "upstream_missing": 10
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-08",
+        "last_processed_day": "2026-11-08",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      },
+      {
+        "source": "sentinel1",
+        "expected_until": "2026-11-06",
+        "days_expected": 310,
+        "states": {
+          "upstream_missing": 229,
+          "in_gold": 81
+        },
+        "gaps": [],
+        "last_valid_day": "2026-11-06",
+        "last_processed_day": "2026-11-06",
+        "behind_days": 0,
+        "stale": false,
+        "gap_days": 0
+      }
+    ]
+  }
+}

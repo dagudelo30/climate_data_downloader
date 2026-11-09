@@ -10,6 +10,7 @@ from datetime import date
 import numpy as np
 import pandas as pd
 
+from climate_pipeline.config import Settings
 from climate_pipeline.domain.aoi import AreaOfInterest
 from climate_pipeline.domain.dates import EpiWeek, epi_weeks_touched
 from climate_pipeline.domain.errors import ConfigurationError, GridMismatchError
@@ -49,6 +50,8 @@ class GoldBuildReport:
     daily_rows: int = 0
     weekly_rows: int = 0
     consistency_violations: dict[str, int] = field(default_factory=dict)
+    #: Sources whose Silver was read for each built day (recorded in the catalog).
+    sources_by_day: dict[str, list[str]] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -64,6 +67,7 @@ class GoldBuildReport:
             "weeks_built": self.weeks_built,
             "daily_rows": self.daily_rows,
             "weekly_rows": self.weekly_rows,
+            "sources": sorted({source for sources in self.sources_by_day.values() for source in sources}),
             "consistency_violations": self.consistency_violations,
         }
 
@@ -79,6 +83,7 @@ class GoldBuilder:
         output_format: OutputFormat,
         consistency_rules: Sequence[ConsistencyRule] = DEFAULT_CONSISTENCY_RULES,
         columns: set[str] | None = None,
+        settings: Settings | None = None,
     ) -> None:
         self.lake = lake
         self.catalog = catalog
@@ -87,7 +92,7 @@ class GoldBuilder:
         self.grid_name = grid_name
         self.output_format = OutputFormat(output_format)
         self.layout = lake.gold_layout(grid_name)
-        self.store: GoldStore = open_gold_store(self.layout, self.output_format)
+        self.store: GoldStore = open_gold_store(self.layout, self.output_format, settings)
         self.consistency_rules = consistency_rules
         #: Gold columns to build (the selected variables); None = every Silver variable.
         self.columns = columns
@@ -133,10 +138,13 @@ class GoldBuilder:
         raise ConfigurationError("no Silver data available to derive a default target grid")
 
     # --- daily ----------------------------------------------------------------------
-    def resample_day(self, day: date, grid: GridSpec) -> dict[str, np.ndarray]:
-        """Every Silver variable of ``day`` resampled onto the full ``grid`` (2-D arrays)."""
+    def resample_day(self, day: date, grid: GridSpec) -> tuple[dict[str, np.ndarray], set[str]]:
+        """Every Silver variable of ``day`` resampled onto the full ``grid`` (2-D arrays), and the
+        sources whose Silver was read."""
         layers: dict[str, np.ndarray] = {}
+        sources: set[str] = set()
         for source, path in self.lake.silver_files_for(day).items():
+            sources.add(source)
             dataset = standardize_spatial_dims(read_netcdf(path))
             for name in dataset.data_vars:
                 if str(name).lower() in NON_DATA_VARIABLES:
@@ -151,13 +159,7 @@ class GoldBuilder:
                     continue  # stale Silver of a variable that is no longer selected
                 resampled = resample_to_grid(dataset[name], grid, spec.resampling)
                 layers[spec.gold_column] = resampled.values.astype("float32")
-        return layers
-
-    def build_daily_frame(
-        self, day: date, grid: GridSpec, cell_ids: np.ndarray, lon: np.ndarray, lat: np.ndarray
-    ) -> tuple[pd.DataFrame, dict[str, int]]:
-        layers = self.resample_day(day, grid)
-        return self.frame_from_layers(day, layers, cell_ids, lon, lat)
+        return layers, sources
 
     def frame_from_layers(
         self,
@@ -167,10 +169,18 @@ class GoldBuilder:
         lon: np.ndarray,
         lat: np.ndarray,
     ) -> tuple[pd.DataFrame, dict[str, int]]:
-        """Daily Gold rows of the AOI cells from full-grid 2-D layers, with QC applied."""
+        """Daily Gold rows of the AOI cells from full-grid 2-D layers, with QC applied.
+
+        File back-ends rewrite a whole partition, so every selected column is written (NA when
+        its source has not published that day yet): every partition has the same schema. The
+        Postgres store merges columns instead, so it only receives the columns of this run.
+        """
         columns = {name: values.reshape(-1)[cell_ids].astype("float32") for name, values in layers.items()}
         if not columns:
             return pd.DataFrame(), {}
+        if self.columns is not None and not self.store.merges_columns:
+            for name in self.columns - columns.keys():
+                columns[name] = np.full(cell_ids.size, np.nan, dtype="float32")
 
         frame = pd.DataFrame(
             {
@@ -205,13 +215,19 @@ class GoldBuilder:
         )
 
     def write_day(
-        self, day: date, frame: pd.DataFrame, violations: dict[str, int], report: GoldBuildReport
+        self,
+        day: date,
+        frame: pd.DataFrame,
+        violations: dict[str, int],
+        report: GoldBuildReport,
+        sources: set[str],
     ) -> bool:
         if frame.empty:
             report.days_without_silver.append(day.isoformat())
             return False
         self.store.upsert_daily(day, frame)
         report.days_built.append(day.isoformat())
+        report.sources_by_day[day.isoformat()] = sorted(sources)
         report.daily_rows += len(frame)
         for rule, count in violations.items():
             report.consistency_violations[rule] = report.consistency_violations.get(rule, 0) + count
@@ -223,20 +239,25 @@ class GoldBuilder:
         cell_ids, lon, lat = self.aoi_cells(grid)
         report = self.new_report(grid, int(cell_ids.size))
         for day in days:
-            frame, violations = self.build_daily_frame(day, grid, cell_ids, lon, lat)
-            self.write_day(day, frame, violations, report)
+            layers, sources = self.resample_day(day, grid)
+            frame, violations = self.frame_from_layers(day, layers, cell_ids, lon, lat)
+            self.write_day(day, frame, violations, report, sources)
         return self.finish(report)
 
     def finish(self, report: GoldBuildReport) -> GoldBuildReport:
-        """Epidemiological weeks of the built days, catalog bookkeeping and log."""
+        """Epidemiological weeks of the built days (plus any week the store reports as stale),
+        catalog bookkeeping and log."""
         built = [date.fromisoformat(day) for day in report.days_built]
-        for week in epi_weeks_touched(built):
+        for week in sorted({*epi_weeks_touched(built), *self.store.stale_weeks()}):
             weekly_rows = self.build_week(week)
             if weekly_rows:
                 report.weeks_built.append(week.label)
                 report.weekly_rows += weekly_rows
 
-        self.catalog.mark_gold_built(self.build_key, built)
+        self.catalog.mark_gold_built(
+            self.build_key,
+            {date.fromisoformat(day): sources for day, sources in report.sources_by_day.items()},
+        )
         logger.info(
             "gold/%s: %d days, %d epi weeks, %d daily rows",
             self.grid_name,
@@ -257,6 +278,13 @@ class GoldBuilder:
         check_bounds(weekly, self.variables, "gold_epiweekly")
         self.store.upsert_weekly(week, weekly)
         return len(weekly)
+
+    def close(self) -> None:
+        self.store.close()
+
+    def refresh_weeks(self, weeks: Iterable[EpiWeek]) -> list[str]:
+        """Rebuild the given epi weeks from the daily rows in the store (e.g. ``stale_weeks()``)."""
+        return [week.label for week in sorted(set(weeks)) if self.build_week(week)]
 
 
 @dataclass(frozen=True)
@@ -309,10 +337,20 @@ class NestedGoldBuilder:
         grids: Sequence[NestedGrid],
         output_format: OutputFormat,
         columns: set[str] | None = None,
+        settings: Settings | None = None,
     ) -> None:
         self.grids = list(grids)
         self.builders = [
-            GoldBuilder(lake, catalog, variables, aoi, grid.name, output_format, columns=columns)
+            GoldBuilder(
+                lake,
+                catalog,
+                variables,
+                aoi,
+                grid.name,
+                output_format,
+                columns=columns,
+                settings=settings,
+            )
             for grid in self.grids
         ]
         self.catalog = catalog
@@ -335,7 +373,7 @@ class NestedGoldBuilder:
 
         template_builder, template_grid = resolved[0][1], resolved[0][2]
         for day in days:
-            fine_layers = template_builder.resample_day(day, template_grid)
+            fine_layers, sources = template_builder.resample_day(day, template_grid)
             for nested, builder, grid, cell_ids, lon, lat, report in resolved:
                 if nested.nesting is None:
                     layers = fine_layers
@@ -345,5 +383,9 @@ class NestedGoldBuilder:
                         for name, values in fine_layers.items()
                     }
                 frame, violations = builder.frame_from_layers(day, layers, cell_ids, lon, lat)
-                builder.write_day(day, frame, violations, report)
+                builder.write_day(day, frame, violations, report, sources)
         return [builder.finish(report) for _, builder, *_, report in resolved]
+
+    def close(self) -> None:
+        for builder in self.builders:
+            builder.close()

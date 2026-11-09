@@ -46,7 +46,7 @@ LABELS = {
     "viirs": "VIIRS luces nocturnas",
 }
 NOTES = {
-    "imerg": "Seleccionada para precipitación: la más reciente. Corrida provisional; la final llega ~3.5 meses después.",
+    "imerg": "Seleccionada para precipitación: la más reciente. Corrida provisional; la final (Final Run) llega a Earth Engine ~13 meses después.",
     "chirps": "No seleccionada: 0.05° pero con 7-8 días de rezago (preliminar).",
     "gsmap": "Empata con IMERG en latencia y resolución; se prefiere IMERG.",
     "mswep": "Empata con IMERG; requiere el acceso a Google Drive que otorga GloH2O (no configurado).",

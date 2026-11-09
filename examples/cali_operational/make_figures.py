@@ -2,19 +2,17 @@
 
 Writes under ``--output-dir`` (default ``outputs/cali_operational``):
 
-* ``maps/resoluciones_semana.png``     key variables of one epidemiological week, one column per grid;
-* ``maps/variables_<grid>.png``         every family of variables of that week on one grid;
+* ``maps/resoluciones_semana.png``     key variables of the latest complete epi week, one column per grid;
+* ``maps/variables_100m.png``           every family of variables of that week on the finest grid;
 * ``maps/estaticas_resoluciones.png``  terrain and urban covariates, one column per grid;
-* ``maps/semanas/resoluciones_<YYYY>-W<ww>.png`` the same four variables for every complete week,
-  colour scales fixed over all weeks;
-* ``animations/semanal_resoluciones.gif`` those weekly maps as an animation;
-* ``timeseries/series_diarias.png``    daily AOI means of one variable per family (1 km grid).
+* ``animations/semanal_resoluciones.gif`` the key variables of every complete week of the run
+  (colour scales fixed over all weeks), one column per grid.
 
 Colour scales are one hue per family and are shared across grids (and weeks in the GIF), so
 resolutions are directly comparable. Cells are drawn from ``cell_id`` on each grid's
 ``grid.json``; the Cali barrios outline is overlaid.
 
-    uv run python examples/cali_operational/make_figures.py --data-root data/operational
+    uv run python examples/cali_operational/make_figures.py --data-root data
 """
 
 from __future__ import annotations
@@ -264,15 +262,6 @@ class Figures:
         print(path)
         return path
 
-    def weekly_series(self) -> list[Path]:
-        """One PNG per complete epidemiological week, colour scales fixed over all weeks."""
-        return [
-            self.resolutions_week(
-                year, week, f"maps/semanas/resoluciones_{year}-W{week:02d}.png", shared_scale=True
-            )
-            for year, week in self.complete_weeks()
-        ]
-
     def variables_grid(self, grid: str, year: int, week: int) -> None:
         frame = self.weekly[grid].query("epi_year == @year and epi_week == @week")
         frames = {name: self.weekly[name].query("epi_year == @year and epi_week == @week") for name in GRIDS}
@@ -329,97 +318,19 @@ class Figures:
         frames[0].save(path, save_all=True, append_images=frames[1:], duration=1400, loop=0)
         print(path)
 
-    def timeseries(self) -> None:
-        daily = read(self.lake, "1km", "daily")
-        daily["date"] = pd.to_datetime(daily["date"])
-        means = daily.groupby("date").mean(numeric_only=True)
-        panels = (
-            (("imerg_precip",), "Precipitación IMERG", "mm/día", "bar"),
-            (("agera5_temp_max", "agera5_temp_min"), "Temperatura máxima y mínima AgERA5", "°C", "line"),
-            (("agera5_rh_max", "agera5_rh_min"), "Humedad relativa máx. y mín. AgERA5", "%", "line"),
-            (("agera5_wind_speed",), "Viento a 10 m AgERA5", "m/s", "line"),
-            (("agera5_solar_radiation",), "Radiación solar AgERA5", "MJ/m²/día", "line"),
-            (("goes_cold_cloud_frac_235",), "Nube fría GOES (<235 K)", "fracción del día", "line"),
-            (("modis_lst_day_aqua", "modis_lst_night_aqua"), "LST MODIS Aqua día y noche", "°C", "dots"),
-            (("smap_sm_surface",), "Humedad del suelo SMAP", "m³/m³", "line"),
-        )
-        series_colors = ("#2a6fdb", "#d1652b")
-        labels = {
-            "agera5_temp_max": "máxima",
-            "agera5_temp_min": "mínima",
-            "agera5_rh_max": "máxima",
-            "agera5_rh_min": "mínima",
-            "modis_lst_day_aqua": "día (13:30)",
-            "modis_lst_night_aqua": "noche (01:30)",
-        }
-        fig, axes = plt.subplots(4, 2, figsize=(13, 11), sharex=True)
-        for ax, (columns, title, units, kind) in zip(axes.flat, panels, strict=True):
-            for index, column in enumerate(columns):
-                if column not in means:
-                    continue
-                series = means[column]
-                color = series_colors[index]
-                if kind == "bar":
-                    ax.bar(series.index, series.to_numpy(), width=0.8, color=color)
-                elif kind == "dots":
-                    ax.plot(
-                        series.index,
-                        series.to_numpy(),
-                        "o",
-                        markersize=3.5,
-                        color=color,
-                        label=labels.get(column, column),
-                    )
-                else:
-                    ax.plot(
-                        series.index,
-                        series.to_numpy(),
-                        linewidth=2,
-                        color=color,
-                        label=labels.get(column, column),
-                    )
-            ax.set_title(title, loc="left", fontsize=10)
-            ax.set_ylabel(units)
-            ax.grid(axis="y", color="#e6e9e4", linewidth=0.8)
-            ax.set_axisbelow(True)
-            for side in ("top", "right"):
-                ax.spines[side].set_visible(False)
-            if len(columns) > 1:
-                ax.legend(
-                    frameon=False,
-                    loc="lower right",
-                    bbox_to_anchor=(1.0, 1.0),
-                    fontsize=8,
-                    ncols=2,
-                    borderaxespad=0.2,
-                )
-        fig.suptitle(
-            "Cali · promedio diario sobre el AOI (grilla de 1 km), 30 ago – 7 nov 2026",
-            x=0.02,
-            ha="left",
-            fontsize=12,
-            color=INK,
-        )
-        fig.autofmt_xdate()
-        fig.tight_layout(rect=(0, 0, 1, 0.97))
-        self.save(fig, "timeseries/series_diarias.png")
-
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", type=Path, default=Path("data/operational"))
+    parser.add_argument("--data-root", type=Path, default=Path("data"))
     parser.add_argument("--output-dir", type=Path, default=Path("outputs/cali_operational"))
     parser.add_argument("--week", help="Epidemiological week as YYYY-Www (default: latest complete one)")
     args = parser.parse_args()
     figures = Figures(args.data_root, args.output_dir)
     year, week = figures.week(args.week)
     figures.resolutions_week(year, week)
-    for grid in GRIDS:
-        figures.variables_grid(grid, year, week)
+    figures.variables_grid(GRIDS[0], year, week)
     figures.statics()
-    figures.weekly_series()
     figures.weekly_gif()
-    figures.timeseries()
 
 
 if __name__ == "__main__":

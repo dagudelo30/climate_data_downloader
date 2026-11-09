@@ -1,14 +1,30 @@
-# Operational configuration for Cali: every daily source, up to today.
-# Every key falls back to src/climate_pipeline/config.py (DEFAULT_SOURCES) when omitted.
+# Operational exercise for Cali (urban perimeter): every selected daily source, from 1 January
+# 2026 up to TODAY, on four nested resolutions. Every key falls back to
+# src/climate_pipeline/config.py (DEFAULT_SOURCES) when omitted.
+#
+#   climate-pipeline run   --config examples/cali_operational/pipeline.yaml   # local lake (Parquet)
+#   climate-pipeline sync  --config examples/cali_operational/pipeline.yaml   # PostgreSQL (DATABASE_URL)
+#   climate-pipeline coverage --config examples/cali_operational/pipeline.yaml
+run:
+  aoi_path: data/auxiliary/shapefiles/cali/cali.shp
+  sources: [imerg, agera5, gee, era5land, modis, viirs, smap, landsat, goes, sentinel1]
+  start_date: 2026-01-01      # sync/coverage fill every gap from here …
+  # end_date: omitted          # … to today (real time)
+  target_grids:               # MAGNA-SIRGAS 2018 / Origen-Nacional, aligned: every grid nests
+    100m: EPSG:9377@100
+    500m: EPSG:9377@500
+    1km: EPSG:9377@1000
+    5km: EPSG:9377@5000
+  nested: false               # true: coarser grids = exact block means of the 100 m one
+  output_format: parquet      # local lake; `sync` always writes PostgreSQL
+  static:
+    layers: [terrain, urban, osm]
+    year: 2026                # urban composites of the current year
+  max_behind_days: 3          # coverage: a source more than 3 days behind its latency is stale
+
 clip_mode: polygon
 
 sources:
-  chirps:
-    max_workers: 2           # CHC answers HTTP 403 to aggressive clients
-    options:
-      version: v3            # prelim (sat, ~7 days) → final (rnl, ~3rd week of next month)
-      disaggregation: rnl
-
   agera5:
     max_workers: 8           # CDS queues each request ~1 min: submit in parallel
 
@@ -20,8 +36,6 @@ sources:
 
   # Sub-daily products are aggregated over the Colombian civil day (UTC-5), not the UTC day.
   imerg:
-    options: {utc_offset_hours: -5}
-  gsmap:
     options: {utc_offset_hours: -5}
   smap:
     options: {utc_offset_hours: -5}

@@ -7,7 +7,7 @@ import logging
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +25,7 @@ from climate_pipeline.pipeline.gold import GoldBuilder, GoldBuildReport, NestedG
 from climate_pipeline.pipeline.latency import SourcePlan, plan_source
 from climate_pipeline.processing.harmonize import SilverInput, build_silver_dataset
 from climate_pipeline.processing.quality import BoundsReport
-from climate_pipeline.storage.catalog import Catalog, CatalogEntry
+from climate_pipeline.storage.catalog import Catalog, CatalogEntry, ParquetCatalog
 from climate_pipeline.storage.gold import OutputFormat
 from climate_pipeline.storage.layout import DataLake, validate_grid_name
 from climate_pipeline.storage.netcdf import read_netcdf, write_netcdf_atomic
@@ -71,6 +71,9 @@ class RunRequest:
     today: date | None = None
     #: Derive every grid from the finest one (block means) instead of resampling each.
     nested: bool = False
+    #: Retry ``missing`` days only inside each source's ``lookback_days`` (``sync`` over long
+    #: windows); older ones were not published (no overpass) and are not asked for again.
+    retry_within_lookback: bool = False
 
     @property
     def effective_today(self) -> date:
@@ -167,6 +170,15 @@ def build_variable_catalog(config: PipelineConfig) -> VariableCatalog:
     return VariableCatalog(specs)
 
 
+def open_catalog(settings: Settings, lake: DataLake, output_format: OutputFormat | str) -> Catalog:
+    """The catalog lives with Gold: Postgres Gold → ``ingest_manifest``; file Gold → Parquet manifests."""
+    if OutputFormat(output_format) is OutputFormat.POSTGRES:
+        from climate_pipeline.storage.postgres import PostgresCatalog, database_from
+
+        return PostgresCatalog(database_from(settings))
+    return ParquetCatalog(lake)
+
+
 class Pipeline:
     def __init__(
         self,
@@ -174,11 +186,14 @@ class Pipeline:
         config: PipelineConfig,
         lake: DataLake | None = None,
         extractor_factories: dict[str, ExtractorFactory] | None = None,
+        catalog: Catalog | None = None,
+        output_format: OutputFormat | str = OutputFormat.PARQUET,
     ) -> None:
         self.settings = settings
         self.config = config
         self.lake = lake or DataLake(settings.climate_data_root)
-        self.catalog = Catalog(self.lake)
+        self.output_format = OutputFormat(output_format)
+        self.catalog = catalog or open_catalog(settings, self.lake, self.output_format)
         self.variables = build_variable_catalog(config)
         self._factories: dict[str, ExtractorFactory] = {**EXTRACTORS, **(extractor_factories or {})}
 
@@ -213,6 +228,11 @@ class Pipeline:
                 end=request.end_date,
                 incremental=request.incremental,
                 force=request.force,
+                retry_since=(
+                    request.effective_today - timedelta(days=self.config.source(source).latency.lookback_days)
+                    if request.retry_within_lookback
+                    else None
+                ),
             )
             for source in request.sources
         }
@@ -330,19 +350,29 @@ class Pipeline:
                 grid.name,
                 request.output_format,
                 columns=self.gold_columns(),
+                settings=self.settings,
             )
-            days = self.catalog.pending_gold_dates(builder.build_key)
-            if not request.incremental and request.start_date and request.end_date:
-                days = [day for day in days if request.start_date <= day <= request.end_date]
-            if not days:
-                logger.info("gold/%s: up to date", grid.name)
-                continue
             try:
-                reports.append(builder.build(days, grid.spec))
+                days = self._window(request, self.catalog.pending_gold_dates(builder.build_key))
+                if days:
+                    reports.append(builder.build(days, grid.spec))
+                elif weeks := builder.refresh_weeks(builder.store.stale_weeks()):
+                    logger.info("gold/%s: rebuilt stale epi weeks %s", grid.name, weeks)
+                else:
+                    logger.info("gold/%s: up to date", grid.name)
             except Exception as exc:
                 logger.exception("gold/%s failed", grid.name)
                 errors[grid.name] = repr(exc)
+            finally:
+                builder.close()
         return reports, errors
+
+    @staticmethod
+    def _window(request: RunRequest, days: list[date]) -> list[date]:
+        """Pending days restricted to the request's explicit dates (all of them when incremental)."""
+        if request.incremental or not (request.start_date and request.end_date):
+            return days
+        return [day for day in days if request.start_date <= day <= request.end_date]
 
     def _build_nested_gold(
         self, request: RunRequest, aoi: AreaOfInterest
@@ -361,24 +391,25 @@ class Pipeline:
             grids,
             request.output_format,
             columns=self.gold_columns(),
-        )
-        days = builder.pending_days()
-        if not request.incremental and request.start_date and request.end_date:
-            days = [day for day in days if request.start_date <= day <= request.end_date]
-        if not days:
-            logger.info("gold (nested %s): up to date", [grid.name for grid in grids])
-            return [], {}
-        logger.info(
-            "gold (nested): template %s, derived %s, %d days",
-            grids[0].name,
-            [grid.name for grid in grids[1:]],
-            len(days),
+            settings=self.settings,
         )
         try:
+            days = self._window(request, builder.pending_days())
+            if not days:
+                logger.info("gold (nested %s): up to date", [grid.name for grid in grids])
+                return [], {}
+            logger.info(
+                "gold (nested): template %s, derived %s, %d days",
+                grids[0].name,
+                [grid.name for grid in grids[1:]],
+                len(days),
+            )
             return builder.build(days), {}
         except Exception as exc:
             logger.exception("nested gold failed")
             return [], {"+".join(grid.name for grid in grids): repr(exc)}
+        finally:
+            builder.close()
 
     def run(self, request: RunRequest) -> RunReport:
         aoi = AreaOfInterest.from_file(request.aoi_path)
@@ -395,6 +426,7 @@ class Pipeline:
                 "incremental": request.incremental,
                 "nested": request.nested,
                 "force": request.force,
+                "retry_within_lookback": request.retry_within_lookback,
                 "today": request.effective_today,
             },
         )
@@ -403,3 +435,6 @@ class Pipeline:
             report.gold, report.gold_errors = self.build_gold(request, aoi)
         report.finished_at = datetime.now(UTC).isoformat(timespec="seconds")
         return report
+
+    def close(self) -> None:
+        self.catalog.close()

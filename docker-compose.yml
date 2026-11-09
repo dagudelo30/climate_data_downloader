@@ -1,0 +1,38 @@
+# Local stack: PostGIS + the pipeline.
+#
+#   docker compose up -d db                                  # database on localhost:5433
+#   docker compose run --rm pipeline sync --config examples/cali_operational/pipeline.yaml
+#   docker compose run --rm pipeline coverage --config examples/cali_operational/pipeline.yaml \
+#       --output-format postgres
+#
+# Credentials come from .env (CDSAPI_KEY, GEE_PROJECT, GEE_SERVICE_ACCOUNT_KEY, ...).
+services:
+  db:
+    # The official image is amd64-only: Apple Silicon runs it under emulation.
+    image: postgis/postgis:17-3.5
+    platform: linux/amd64
+    environment:
+      POSTGRES_USER: climate
+      POSTGRES_PASSWORD: climate
+      POSTGRES_DB: climate
+    ports: ["5433:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U climate"]
+      interval: 5s
+      retries: 20
+
+  pipeline:
+    build: .
+    depends_on:
+      db: {condition: service_healthy}
+    env_file: [{path: .env, required: false}]
+    environment:
+      DATABASE_URL: postgresql://climate:climate@db:5432/climate
+    volumes:
+      - ./data:/work/data
+      - ${HOME}/.config/earthengine:/home/pipeline/.config/earthengine:ro
+    profiles: [pipeline]
+
+volumes:
+  pgdata:
