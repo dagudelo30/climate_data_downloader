@@ -17,7 +17,7 @@ import json
 from pathlib import Path
 
 from climate_pipeline.config import load_pipeline_config
-from climate_pipeline.pipeline.availability import variable_latencies
+from climate_pipeline.pipeline.availability import SOURCE_DOCS, STATIC_DOCS, variable_latencies
 from climate_pipeline.pipeline.orchestrator import build_variable_catalog
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -300,6 +300,17 @@ def page(title: str, body: str, extra_head: str = "") -> str:
     )
 
 
+def doc_links(links: list[tuple[str, str]]) -> str:
+    return " · ".join(
+        f'<a href="{esc(url)}" target="_blank" rel="noopener">{esc(label)}</a>' for label, url in links
+    )
+
+
+def static_doc_links(source: str) -> str:
+    links = [link for name, items in STATIC_DOCS.items() if name in source for link in items]
+    return doc_links(links)
+
+
 def tags(codes: str) -> str:
     return "".join(f'<span class="tag" title="{esc(TARGETS[c])}">{c}</span>' for c in codes.split())
 
@@ -380,11 +391,12 @@ def dictionary_page() -> str:
         summary.append(
             f'<tr><td>{esc(product)}</td><td class="mono">{len(specs)}</td><td>{esc("500 m (MODIS) / 10-20 m (Sentinel-2)" if source == "gee" else resolution_of(specs[0].gold_column, source) if specs else "")}</td>'
             f'<td class="mono">{span(publication) if publication else f"~{configured} d (configurada)"}</td><td class="mono">{span(effective)}</td>'
-            f"<td>{esc(agency)}</td></tr>"
+            f"<td>{esc(agency)}</td><td>{doc_links(SOURCE_DOCS.get(source, []))}</td></tr>"
         )
         rows.append(
             f'<tr class="group"><th colspan="9" scope="colgroup">{esc(product)} '
-            f'<span class="muted mono">· {esc(agency)} · {len(specs)} {"variable" if len(specs) == 1 else "variables"}</span></th></tr>'
+            f'<span class="muted mono">· {esc(agency)} · {len(specs)} {"variable" if len(specs) == 1 else "variables"}</span>'
+            f' <span class="mono" style="font-weight:400">· {doc_links(SOURCE_DOCS.get(source, []))}</span></th></tr>'
         )
         for spec in specs:
             text, targets = PURPOSE.get(spec.gold_column, (spec.description, ""))
@@ -401,7 +413,8 @@ def dictionary_page() -> str:
                 f'<td class="mono">{esc(weekly)}</td></tr>'
             )
     static_rows = "".join(
-        f"<tr><td><code>{esc(column)}</code></td><td>{esc(text)}</td><td>{tags(targets)}</td><td>{esc(source)}</td>"
+        f"<tr><td><code>{esc(column)}</code></td><td>{esc(text)}</td><td>{tags(targets)}</td>"
+        f'<td>{esc(source)}<span class="mono" style="display:block">{static_doc_links(source)}</span></td>'
         f"<td>{esc(resolution)}</td><td>{esc(period)}</td></tr>"
         for column, text, source, resolution, period, targets in STATIC
     )
@@ -436,7 +449,7 @@ def dictionary_page() -> str:
   nubes y días sin pasada.</p>
   <div class="scroll"><table>
     <thead><tr><th>Fuente</th><th>Variables</th><th>Resolución original</th><th>Latencia de publicación</th>
-    <th>Latencia efectiva</th><th>Organismo</th></tr></thead><tbody>{"".join(summary)}</tbody></table></div>
+    <th>Latencia efectiva</th><th>Organismo</th><th>Documentación</th></tr></thead><tbody>{"".join(summary)}</tbody></table></div>
 </section>
 <section>
   <h2>Columnas diarias</h2>
@@ -683,7 +696,7 @@ RESOLUTION_ROWS = [
 ]
 STATIC_RESOLUTION_ROWS = [
     ("Google Open Buildings 2.5D", "~4 m", "anual (≤2023)"),
-    ("ESA WorldCover / Dynamic World / Sentinel-2", "10 m", "2021 / anual"),
+    ("ESA WorldCover 2021 / Dynamic World / Sentinel-2", "10 m", "2021 / anual"),
     ("Landsat 8/9 (LST anual)", "30 m", "anual"),
     ("Copernicus DEM GLO-90", "90 m", "fija"),
     ("JRC GHSL", "100 m", "2018 / 2020"),
@@ -693,13 +706,20 @@ STATIC_RESOLUTION_ROWS = [
 
 
 def resolution_page() -> str:
+    def row_docs(source: str, product: str) -> str:
+        links = SOURCE_DOCS.get(source, [])
+        if source == "gee":  # the gee source mixes MODIS and Sentinel-2 indices
+            keep = ("Sentinel-2", "Cloud") if "Sentinel-2" in product else ("MOD09GA", "MYD09GA")
+            links = [link for link in links if link[0].startswith(keep)]
+        return doc_links(links)
+
     rows = "".join(
         f'<tr><td>{esc(product)}</td><td class="mono">{esc(source)}</td><td>{esc(label)}</td>'
-        f"<td>{esc(temporal)}</td><td>{esc(agency)}</td></tr>"
+        f"<td>{esc(temporal)}</td><td>{esc(agency)}</td><td>{row_docs(source, product)}</td></tr>"
         for source, product, agency, _, label, temporal, _ in sorted(RESOLUTION_ROWS, key=lambda row: row[3])
     )
     static_rows = "".join(
-        f"<tr><td>{esc(source)}</td><td>{esc(spatial)}</td><td>{esc(period)}</td></tr>"
+        f"<tr><td>{esc(source)}</td><td>{esc(spatial)}</td><td>{esc(period)}</td><td>{static_doc_links(source)}</td></tr>"
         for source, spatial, period in STATIC_RESOLUTION_ROWS
     )
     body = f"""
@@ -714,13 +734,13 @@ def resolution_page() -> str:
 <section>
   <h2>Variables diarias</h2>
   <div class="scroll"><table>
-    <thead><tr><th>Fuente</th><th>--sources</th><th>Resolución espacial</th><th>Resolución temporal</th><th>Organismo</th></tr></thead>
+    <thead><tr><th>Fuente</th><th>--sources</th><th>Resolución espacial</th><th>Resolución temporal</th><th>Organismo</th><th>Documentación</th></tr></thead>
     <tbody>{rows}</tbody></table></div>
 </section>
 <section>
   <h2>Covariables estáticas</h2>
   <div class="scroll"><table>
-    <thead><tr><th>Fuente</th><th>Resolución espacial</th><th>Periodo</th></tr></thead>
+    <thead><tr><th>Fuente</th><th>Resolución espacial</th><th>Periodo</th><th>Documentación</th></tr></thead>
     <tbody>{static_rows}</tbody></table></div>
 </section>
 <footer>Generado por <code>docs/make_docs.py</code>.</footer>

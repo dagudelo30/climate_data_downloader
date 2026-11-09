@@ -21,7 +21,7 @@ from pathlib import Path
 
 from climate_pipeline.config import load_pipeline_config
 from climate_pipeline.domain.dates import EpiWeek
-from climate_pipeline.pipeline.availability import NATIVE_RESOLUTION, variable_latencies
+from climate_pipeline.pipeline.availability import NATIVE_RESOLUTION, SOURCE_DOCS, variable_latencies
 from climate_pipeline.pipeline.orchestrator import build_variable_catalog
 
 GROUPS = {
@@ -291,7 +291,12 @@ def render(
             group_rows.append(
                 "<tr>"
                 f'<td><span class="name">{esc(LABELS.get(item["source"], item["source"]))}</span>'
-                f'<span class="sub">{esc(item["agency"])}</span></td>'
+                f'<span class="sub">{esc(item["agency"])}</span>'
+                + "".join(
+                    f'<a class="doc" href="{esc(url)}" target="_blank" rel="noopener">{esc(label)}</a>'
+                    for label, url in SOURCE_DOCS.get(item["source"], [])
+                )
+                + "</td>"
                 f'<td><span class="res">{esc(label)}</span></td>'
                 f'<td class="num"><span class="lag-pill lag-{min((item["lag_days"] or 0) // 4, 3)}">'
                 f"{esc(item['lag_days'])} días</span></td>"
@@ -384,6 +389,7 @@ tr.group th {{ font: 600 15px/1.2 var(--font-display); padding-top: 18px; color:
 .chip-final {{ background: var(--accent-soft); color: var(--accent); }}
 .chip-prelim {{ background: var(--prelim-soft); color: var(--prelim); }}
 .lag-pill {{ display: inline-block; min-width: 4.6em; }}
+a.doc {{ display: inline-block; margin: 3px 8px 0 0; font: 500 11.5px var(--font-data); color: var(--accent); }}
 .res {{ display: block; font: 500 13px/1.4 var(--font-data); font-variant-numeric: tabular-nums; max-width: 24ch; }}
 .row-res {{ fill: var(--muted); font: 400 11.5px var(--font-data); }}
 .lag-2, .lag-3 {{ color: var(--today); font-weight: 600; }}

@@ -48,6 +48,70 @@ NATIVE_RESOLUTION: dict[str, tuple[float, str]] = {
 }
 
 
+_GEE_CATALOG = "https://developers.google.com/earth-engine/datasets/catalog/"
+
+#: Official documentation of every source: ``source -> [(label, url)]``.
+SOURCE_DOCS: dict[str, list[tuple[str, str]]] = {
+    "imerg": [
+        ("NASA GPM IMERG", "https://gpm.nasa.gov/data/imerg"),
+        ("GEE IMERG V07", _GEE_CATALOG + "NASA_GPM_L3_IMERG_V07"),
+    ],
+    "agera5": [
+        (
+            "Copernicus CDS AgERA5",
+            "https://cds.climate.copernicus.eu/datasets/sis-agrometeorological-indicators",
+        )
+    ],
+    "era5land": [("GEE ERA5-Land daily", _GEE_CATALOG + "ECMWF_ERA5_LAND_DAILY_AGGR")],
+    "goes": [
+        ("GEE GOES-19 MCMIP", _GEE_CATALOG + "NOAA_GOES_19_MCMIPF"),
+        ("GEE GOES-16 MCMIP", _GEE_CATALOG + "NOAA_GOES_16_MCMIPF"),
+    ],
+    "modis": [
+        ("MOD11A1", _GEE_CATALOG + "MODIS_061_MOD11A1"),
+        ("MYD11A1", _GEE_CATALOG + "MODIS_061_MYD11A1"),
+        ("MOD09GA", _GEE_CATALOG + "MODIS_061_MOD09GA"),
+        ("MCD19A2 MAIAC", _GEE_CATALOG + "MODIS_061_MCD19A2_GRANULES"),
+    ],
+    "gee": [
+        ("MOD09GA", _GEE_CATALOG + "MODIS_061_MOD09GA"),
+        ("MYD09GA", _GEE_CATALOG + "MODIS_061_MYD09GA"),
+        ("Sentinel-2 SR", _GEE_CATALOG + "COPERNICUS_S2_SR_HARMONIZED"),
+        ("Cloud Score+", _GEE_CATALOG + "GOOGLE_CLOUD_SCORE_PLUS_V1_S2_HARMONIZED"),
+    ],
+    "landsat": [
+        ("Landsat 8 C2 L2", _GEE_CATALOG + "LANDSAT_LC08_C02_T1_L2"),
+        ("Landsat 9 C2 L2", _GEE_CATALOG + "LANDSAT_LC09_C02_T1_L2"),
+    ],
+    "sentinel1": [("Sentinel-1 GRD", _GEE_CATALOG + "COPERNICUS_S1_GRD")],
+    "smap": [("SMAP L4 SPL4SMGP", _GEE_CATALOG + "NASA_SMAP_SPL4SMGP_008")],
+    "viirs": [("VIIRS VNP46A2", _GEE_CATALOG + "NASA_VIIRS_002_VNP46A2")],
+    "chirps": [("CHC CHIRPS v3", "https://www.chc.ucsb.edu/data/chirps3")],
+    "gsmap": [("GEE GSMaP v8", _GEE_CATALOG + "JAXA_GPM_L3_GSMaP_v8_operational")],
+    "mswep": [("GloH2O MSWEP", "https://www.gloh2o.org/mswep/")],
+}
+
+#: Documentation of the static covariate products (keyed by the product name used in the docs).
+STATIC_DOCS: dict[str, list[tuple[str, str]]] = {
+    "Copernicus DEM GLO-90": [
+        ("Copernicus DEM (AWS Open Data)", "https://registry.opendata.aws/copernicus-dem/")
+    ],
+    "Sentinel-2": [("Sentinel-2 SR", _GEE_CATALOG + "COPERNICUS_S2_SR_HARMONIZED")],
+    "Landsat 8/9": [("Landsat 9 C2 L2", _GEE_CATALOG + "LANDSAT_LC09_C02_T1_L2")],
+    "Dynamic World": [("Dynamic World", _GEE_CATALOG + "GOOGLE_DYNAMICWORLD_V1")],
+    "ESA WorldCover 2021": [("ESA WorldCover", _GEE_CATALOG + "ESA_WorldCover_v200")],
+    "JRC GHSL": [
+        ("GHS-BUILT-S", _GEE_CATALOG + "JRC_GHSL_P2023A_GHS_BUILT_S"),
+        ("GHS-BUILT-H", _GEE_CATALOG + "JRC_GHSL_P2023A_GHS_BUILT_H"),
+    ],
+    "Google Open Buildings 2.5D": [
+        ("Open Buildings 2.5D Temporal", _GEE_CATALOG + "GOOGLE_Research_open-buildings-temporal_v1")
+    ],
+    "VIIRS DNB mensual": [("VIIRS DNB mensual", _GEE_CATALOG + "NOAA_VIIRS_DNB_MONTHLY_V1_VCMSLCFG")],
+    "OpenStreetMap": [("Overpass API", "https://wiki.openstreetmap.org/wiki/Overpass_API")],
+}
+
+
 @dataclass
 class SourceAvailability:
     source: str

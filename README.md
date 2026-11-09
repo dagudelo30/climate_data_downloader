@@ -49,22 +49,23 @@ solar. Usa una **arquitectura Medallion** (Bronze → Silver → Gold).
 
 ## Fuentes seleccionadas
 
-| Fuente (`--sources`) | Organismo | Variables | Qué aporta | Resolución original | Latencia |
-|---|---|---|---|---|---|
-| `imerg` | NASA GPM | 1 | precipitación diaria (30 min → día civil de Colombia) | 0.1° (~11 km) | ~2 d (provisional) |
-| `agera5` | Copernicus C3S | 21 | T media/máx/mín y diurna/nocturna, rocío, presión de vapor, VPD en Tmáx, HR a las 06/09/12/15/18 h, HR máx/mín, viento, radiación solar, ET₀ FAO-56, fracción de horas con lluvia | 0.1° (~11 km) | ~8 d |
-| `era5land` | ECMWF | 13 | T de piel, presión, viento u/v (dirección), temperatura del suelo, evaporación, calor sensible, onda larga, escorrentía, LAI y albedo | 0.1° (~11 km) | ~7 d |
-| `goes` | NOAA GOES-East ABI | 14 | brillo IR y de vapor de agua (bandas 8-15), diferencias de bandas, mínimo diario, duración de nube fría (<235 K, <220 K), reflectancia visible diurna | 2 km (10 min → día) | ~1 d |
-| `modis` | NASA | 7 | LST día y noche de Terra y Aqua, fracción nubosa, agua precipitable y aerosoles (MAIAC) | 1 km | ~3 d |
-| `gee` | NASA / ESA | 10 | NDVI, NDWI, EVI y MNDWI de MODIS (diario) y Sentinel-2, más NDRE y BSI de Sentinel-2 | 500 m / 10-20 m | ~2-4 d |
-| `landsat` | USGS | 1 | LST a 30 m (islas de calor) | 30 m | ~7 d |
-| `sentinel1` | ESA | 3 | radar VV, VH y VH−VV (atraviesa nubes) | 10 m | ~3 d |
-| `smap` | NASA | 2 | humedad del suelo superficial y de la zona de raíces | 9 km | ~3 d |
-| `viirs` | NASA | 1 | luces nocturnas diarias | ~460 m | ~9 d |
-| `build-static` | Copernicus, ESA, Google, JRC, OSM | 24 | terreno (elevación, pendiente, orientación, TPI a 500 m y 2 km, rugosidad) y forma urbana (NDBI, LST anual, edificios, alturas, vías, intersecciones, luces) | 4-100 m | fija o anual |
+| Fuente (`--sources`) | Organismo | Variables | Qué aporta | Resolución original | Latencia | Documentación |
+|---|---|---|---|---|---|---|
+| `imerg` | NASA GPM | 1 | precipitación diaria (30 min → día civil de Colombia) | 0.1° (~11 km) | ~2 d (provisional) | [NASA GPM IMERG](https://gpm.nasa.gov/data/imerg) · [GEE IMERG V07](https://developers.google.com/earth-engine/datasets/catalog/NASA_GPM_L3_IMERG_V07) |
+| `agera5` | Copernicus C3S | 21 | T media/máx/mín y diurna/nocturna, rocío, presión de vapor, VPD en Tmáx, HR a las 06/09/12/15/18 h, HR máx/mín, viento, radiación solar, ET₀ FAO-56, fracción de horas con lluvia | 0.1° (~11 km) | ~8 d | [Copernicus CDS AgERA5](https://cds.climate.copernicus.eu/datasets/sis-agrometeorological-indicators) |
+| `era5land` | ECMWF | 13 | T de piel, presión, viento u/v (dirección), temperatura del suelo, evaporación, calor sensible, onda larga, escorrentía, LAI y albedo | 0.1° (~11 km) | ~7 d | [GEE ERA5-Land daily](https://developers.google.com/earth-engine/datasets/catalog/ECMWF_ERA5_LAND_DAILY_AGGR) |
+| `goes` | NOAA GOES-East ABI | 14 | brillo IR y de vapor de agua (bandas 8-15), diferencias de bandas, mínimo diario, duración de nube fría (<235 K, <220 K), reflectancia visible diurna | 2 km (10 min → día) | ~1 d | [GEE GOES-19 MCMIP](https://developers.google.com/earth-engine/datasets/catalog/NOAA_GOES_19_MCMIPF) · [GEE GOES-16 MCMIP](https://developers.google.com/earth-engine/datasets/catalog/NOAA_GOES_16_MCMIPF) |
+| `modis` | NASA | 7 | LST día y noche de Terra y Aqua, fracción nubosa, agua precipitable y aerosoles (MAIAC) | 1 km | ~3 d | [MOD11A1](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A1) · [MYD11A1](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MYD11A1) · [MOD09GA](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD09GA) · [MCD19A2 MAIAC](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MCD19A2_GRANULES) |
+| `gee` | NASA / ESA | 10 | NDVI, NDWI, EVI y MNDWI de MODIS (diario) y Sentinel-2, más NDRE y BSI de Sentinel-2 | 500 m / 10-20 m | ~2-4 d | [MOD09GA](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD09GA) · [MYD09GA](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MYD09GA) · [Sentinel-2 SR](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED) · [Cloud Score+](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_CLOUD_SCORE_PLUS_V1_S2_HARMONIZED) |
+| `landsat` | USGS | 1 | LST a 30 m (islas de calor) | 30 m | ~7 d | [Landsat 8 C2 L2](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_L2) · [Landsat 9 C2 L2](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC09_C02_T1_L2) |
+| `sentinel1` | ESA | 3 | radar VV, VH y VH−VV (atraviesa nubes) | 10 m | ~3 d | [Sentinel-1 GRD](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD) |
+| `smap` | NASA | 2 | humedad del suelo superficial y de la zona de raíces | 9 km | ~3 d | [SMAP L4 SPL4SMGP](https://developers.google.com/earth-engine/datasets/catalog/NASA_SMAP_SPL4SMGP_008) |
+| `viirs` | NASA | 1 | luces nocturnas diarias | ~460 m | ~9 d | [VIIRS VNP46A2](https://developers.google.com/earth-engine/datasets/catalog/NASA_VIIRS_002_VNP46A2) |
+| `build-static` | Copernicus, ESA, Google, JRC, OSM | 24 | terreno (elevación, pendiente, orientación, TPI a 500 m y 2 km, rugosidad) y forma urbana (NDBI, LST anual, edificios, alturas, vías, intersecciones, luces) | 4-100 m | fija o anual | [Copernicus DEM (AWS Open Data)](https://registry.opendata.aws/copernicus-dem/) · [Sentinel-2 SR](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED) · [Landsat 9 C2 L2](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC09_C02_T1_L2) · [Dynamic World](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_DYNAMICWORLD_V1) · [ESA WorldCover](https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v200) · [GHS-BUILT-S](https://developers.google.com/earth-engine/datasets/catalog/JRC_GHSL_P2023A_GHS_BUILT_S) · [GHS-BUILT-H](https://developers.google.com/earth-engine/datasets/catalog/JRC_GHSL_P2023A_GHS_BUILT_H) · [Open Buildings 2.5D Temporal](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_Research_open-buildings-temporal_v1) · [VIIRS DNB mensual](https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_MONTHLY_V1_VCMSLCFG) · [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) |
 
 Fuentes disponibles en el código pero **no seleccionadas** porque otra mide lo mismo más reciente
-o más fino: `chirps` (5.5 km, ~8 d), `mswep` y `gsmap` (0.1°, empatan con IMERG; MSWEP necesita
+o más fino: `chirps` ([CHC CHIRPS v3](https://www.chc.ucsb.edu/data/chirps3); 5.5 km, ~8 d), `mswep` y `gsmap`
+([GloH2O MSWEP](https://www.gloh2o.org/mswep/), [GEE GSMaP v8](https://developers.google.com/earth-engine/datasets/catalog/JAXA_GPM_L3_GSMaP_v8_operational); 0.1°, empatan con IMERG; MSWEP necesita
 acceso de GloH2O) y las columnas de ERA5-Land, Landsat y VIIRS duplicadas con AgERA5, MODIS,
 SMAP o Sentinel-2. `uv run climate-pipeline variables` lista cada decisión con su razón;
 `deduplicate: false` en el YAML las conserva todas.
