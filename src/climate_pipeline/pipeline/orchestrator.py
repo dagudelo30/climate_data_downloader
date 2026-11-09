@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -239,20 +240,30 @@ class Pipeline:
 
     # --- Bronze + Silver ------------------------------------------------------------
     def ingest(self, request: RunRequest, aoi: AreaOfInterest) -> list[SourceReport]:
-        reports = []
-        for source, plan in self.plan(request).items():
-            report = SourceReport(source=source, plan=plan.to_dict())
-            reports.append(report)
+        """Bronze → Silver for every source, ``config.parallel_sources`` sources at a time.
+
+        Providers are independent (the CDS queue of AgERA5 says nothing about Earth Engine), so
+        running sources side by side cuts the wall time to roughly that of the slowest source.
+        """
+        plans = self.plan(request)
+        reports = {source: SourceReport(source=source, plan=plan.to_dict()) for source, plan in plans.items()}
+
+        def ingest_source(source: str) -> None:
+            plan, report = plans[source], reports[source]
             if plan.total_requests == 0:
                 logger.info("%s: nothing to fetch (%s)", source, dict(plan.reasons))
-                continue
+                return
             try:
                 touched = self._extract(source, plan, aoi, report)
                 self._build_silver(source, sorted(touched), aoi, report)
             except Exception as exc:  # source-level failure (credentials, config...)
                 logger.exception("%s: ingestion aborted", source)
                 report.error = repr(exc)
-        return reports
+
+        workers = max(1, min(self.config.parallel_sources, len(plans)))
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="source") as pool:
+            list(pool.map(ingest_source, plans))
+        return list(reports.values())
 
     def _extract(self, source: str, plan: SourcePlan, aoi: AreaOfInterest, report: SourceReport) -> set[date]:
         specs = [self.variables.get(source, name) for name in plan.requests]
@@ -338,32 +349,68 @@ class Pipeline:
     def build_gold(
         self, request: RunRequest, aoi: AreaOfInterest
     ) -> tuple[list[GoldBuildReport], dict[str, str]]:
+        """Gold on every target grid. Days are the outer loop: each day's Silver is read once and
+        resampled onto every grid that needs that day (grids fail independently)."""
         if request.nested:
             return self._build_nested_gold(request, aoi)
         reports, errors = [], {}
-        for grid in request.target_grids:
-            builder = GoldBuilder(
-                self.lake,
-                self.catalog,
-                self.variables,
-                aoi,
-                grid.name,
-                request.output_format,
-                columns=self.gold_columns(),
-                settings=self.settings,
-            )
-            try:
-                days = self._window(request, self.catalog.pending_gold_dates(builder.build_key))
-                if days:
-                    reports.append(builder.build(days, grid.spec))
-                elif weeks := builder.refresh_weeks(builder.store.stale_weeks()):
-                    logger.info("gold/%s: rebuilt stale epi weeks %s", grid.name, weeks)
-                else:
-                    logger.info("gold/%s: up to date", grid.name)
-            except Exception as exc:
-                logger.exception("gold/%s failed", grid.name)
-                errors[grid.name] = repr(exc)
-            finally:
+        builders: dict[str, GoldBuilder] = {}
+        pending: dict[str, set[date]] = {}
+        states: dict[str, tuple] = {}
+        try:
+            for grid in request.target_grids:
+                builder = GoldBuilder(
+                    self.lake,
+                    self.catalog,
+                    self.variables,
+                    aoi,
+                    grid.name,
+                    request.output_format,
+                    columns=self.gold_columns(),
+                    settings=self.settings,
+                )
+                builders[grid.name] = builder
+                try:
+                    days = self._window(request, self.catalog.pending_gold_dates(builder.build_key))
+                    if days:
+                        resolved = builder.resolve_grid(grid.spec, days)
+                        cells = builder.aoi_cells(resolved)
+                        states[grid.name] = (
+                            resolved,
+                            cells,
+                            builder.new_report(resolved, int(cells[0].size)),
+                        )
+                        pending[grid.name] = set(days)
+                    elif weeks := builder.refresh_weeks(builder.store.stale_weeks()):
+                        logger.info("gold/%s: rebuilt stale epi weeks %s", grid.name, weeks)
+                    else:
+                        logger.info("gold/%s: up to date", grid.name)
+                except Exception as exc:
+                    logger.exception("gold/%s failed", grid.name)
+                    errors[grid.name] = repr(exc)
+
+            for day in sorted(set().union(*pending.values())):
+                silver = None
+                for name in [name for name in states if day in pending[name]]:
+                    builder, (resolved, cells, report) = builders[name], states[name]
+                    try:
+                        silver = builder.load_silver(day) if silver is None else silver
+                        layers, sources = builder.resample_day(day, resolved, silver)
+                        frame, violations = builder.frame_from_layers(day, layers, *cells)
+                        builder.write_day(day, frame, violations, report, sources)
+                    except Exception as exc:
+                        logger.exception("gold/%s failed on %s", name, day)
+                        errors[name] = repr(exc)
+                        del states[name]
+
+            for name, (_, _, report) in states.items():
+                try:
+                    reports.append(builders[name].finish(report))
+                except Exception as exc:
+                    logger.exception("gold/%s failed", name)
+                    errors[name] = repr(exc)
+        finally:
+            for builder in builders.values():
                 builder.close()
         return reports, errors
 

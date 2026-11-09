@@ -1,6 +1,6 @@
 # Handoff — climate-pipeline (Dengue.IA Cali)
 
-_Actualizado: 2026-11-09 · rama `feature/postgres-tiempo-real` → PR a `main`_
+_Actualizado: 2026-11-09 · todo en `main` (PR #4 backend Postgres + ejercicio en tiempo real; PR #5 optimización y limpieza)_
 
 ## Objetivo
 
@@ -112,12 +112,60 @@ Pruebas: `TEST_DATABASE_URL=postgresql://climate:climate@localhost:5433/climate 
 * **Literatura:** `docs/predictores_por_variable.md` ganó la sección de dengue (rezagos, no linealidad,
   dos estudios de Cali) y referencias de fuentes; todos los DOI se verificaron contra Crossref.
 
+## Cierre de la sesión (PR #5): optimización y limpieza
+
+* **Fuentes en paralelo** (`parallel_sources`, por defecto 4): la descarga dura aproximadamente lo de la fuente
+  más lenta (la cola del CDS de AgERA5), no la suma. Earth Engine se inicializa una sola vez por proceso
+  bajo un lock; el catálogo Postgres serializa el acceso a su conexión.
+* **Silver leído una vez por día para todas las grillas** (días como bucle externo): 1.28× en Gold, que
+  se suma al 1.7× del remuestreo directo con `rasterio.warp`; cada grilla sigue fallando por separado.
+* **Código sin uso eliminado:** `static_covariates_frame` duplicaba el remuestreo del terreno; ahora
+  hay una sola función (`terrain_to_grid`) y la prueba usa el camino de producción. Vulture no encuentra
+  otro código muerto (los demás avisos son comandos y extractores registrados por decorador).
+* **Documentación:** README con instalación en macOS/Linux y Windows y una sección de rendimiento;
+  corregido el enlace roto del DOI de Lowe et al. (2021) en `docs/predictores_por_variable.html`.
+
+## Próximo paso acordado: despliegue en AWS (no iniciado)
+
+Decisión de la conversación del 2026-11-09: guardar solo **Gold en Parquet**, con grillas **1 km y
+5 km**. Bronze y Silver viven solo en el runner. El front lo hace Andrés; el backend debe dejar productos
+listos para descargar y graficar.
+
+| Componente | Servicio | US$/mes (aprox., verificar en AWS Pricing Calculator) |
+|---|---|---|
+| Runner diario (`sync`, ~15 min) | EventBridge Scheduler + ECS Fargate (2 vCPU, 4 GB) + ECR | ~0.8 |
+| Gold Parquet + catálogo (~0.7 GB a 10 años) | S3 | ~0.05 |
+| Descargas | CloudFront (1 TB/mes gratis) | ~0 |
+| API (opcional) | API Gateway HTTP + Lambda (DuckDB sobre S3) | 0–2 con uso de proyecto |
+| Secretos, logs y alertas | SSM Parameter Store, CloudWatch, SNS | ~0.3 |
+| **Total** | | **≈ 1.5–5** (sin NAT Gateway; región us-east-1) |
+
+Trabajo pendiente, en orden:
+1. **Modo Parquet + S3 del runner:** upsert por columnas también en Parquet (hoy reescribe la partición
+   completa con todas las columnas), y bajar/subir el catálogo y las particiones afectadas.
+   `run.target_grids` pasa a `{1km, 5km}`.
+2. **Productos por barrio (335) y comuna (22):** calculados desde **Silver nativo**, no desde 1 km (los
+   barrios son más pequeños que una celda), diarios y semanales con `_ndays`.
+3. **Exportadores** a Parquet, NetCDF CF-1.8 (tiempo × y × x; tiempo × unidad) y CSV por nivel y año,
+   más un `catalog.json` (archivo, nivel, formato, periodo, tamaño, checksum) y una guía de uso con
+   ejemplos en Python y R.
+4. **Terraform:** S3, ECR, Fargate, Scheduler, IAM mínimo, Parameter Store y alarma con SNS; CI con OIDC
+   hacia AWS (sin llaves guardadas).
+5. **API Lambda:** `/variables`, `/catalog`, `/coverage`, `/series`, `/map`, `/download` y `/features`
+   (rezagos de 1 a N semanas).
+6. Back-fill de 10 años (~1 h por año de datos; antes de 2018 GOES y Sentinel-2 quedan en NA).
+
+Se necesita del equipo: una cuenta AWS con permisos, una **cuenta de servicio de Earth Engine** (llave
+JSON) registrada como no comercial y **reactivar GitHub Actions** en el repo (hoy está desactivado, por eso
+el CI no corrió en el PR #4).
+
 ## Pendientes y riesgos
 
 * **Publicar los Parquet de Gold 2026** como Release si se quieren compartir (la Release
   `cali-operativo-2026-11-08` del README anterior tenía solo 30 ago – 7 nov).
-* Revisar la primera ejecución del CI en GitHub (servicio PostGIS y publicación de la imagen en GHCR); la
-  imagen se construyó y probó localmente.
+* **GitHub Actions está desactivado** en el repo: ni el CI ni el cron corren. Al reactivarlo, revisar la
+  primera ejecución (servicio PostGIS y publicación de la imagen en GHCR). Todo se verificó localmente
+  (ruff, formato, lockfile, 175 pruebas con PostGIS).
 * `postgis/postgis` no tiene imagen arm64: en Apple Silicon corre emulada (más lenta, funciona).
 * GEE limita cuotas: el back-fill de un año completo en CI puede tardar; `sync` se puede partir por
   fuentes (`--sources`) con `workflow_dispatch`.

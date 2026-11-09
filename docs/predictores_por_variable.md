@@ -27,7 +27,7 @@ rezago mínimo es posible en un pronóstico.
 - [Eastin et al. (2014), predicción autorregresiva de brotes de dengue en Cali con clima local y regional, *AJTMH*](https://doi.org/10.4269/ajtmh.13-0303)
 - [Delmelle et al. (2016), determinantes socioeconómicos y ambientales del dengue en Cali, *Acta Tropica*](https://doi.org/10.1016/j.actatropica.2016.08.028)
 - [Lowe et al. (2018), impactos no lineales y rezagados del clima sobre el dengue en Barbados (DLNM), *PLOS Medicine*](https://doi.org/10.1371/journal.pmed.1002613)
-- [Lowe et al. (2021), amenazas hidrometeorológicas, urbanización y dengue en Brasil, *Lancet Planetary Health*](https://doi.org/10.1016/S2542-5196(20)30292-8)
+- [Lowe et al. (2021), amenazas hidrometeorológicas, urbanización y dengue en Brasil, *Lancet Planetary Health*](https://doi.org/10.1016/S2542-5196%2820%2930292-8)
 - [Colón-González et al. (2021), pronóstico estacional probabilístico de dengue con superensambles, Vietnam, *PLOS Medicine*](https://doi.org/10.1371/journal.pmed.1003542)
 - [Mordecai et al. (2017), efecto de la temperatura en la transmisión de Zika, dengue y chikungunya, *PLOS NTD*](https://doi.org/10.1371/journal.pntd.0005568)
 - [Liu-Helmersson et al. (2014), capacidad vectorial de *Aedes aegypti* según la temperatura, *PLoS ONE*](https://doi.org/10.1371/journal.pone.0089783)

@@ -110,6 +110,8 @@ class PipelineConfig(BaseModel):
     clip_mode: Literal["polygon", "bbox"] = "polygon"
     #: One column per physical quantity (see climate_pipeline.domain.redundancy).
     deduplicate: bool = True
+    #: Sources ingested at the same time (each one also parallelises its own requests).
+    parallel_sources: int = Field(default=4, ge=1, le=16)
     sources: dict[str, SourceConfig]
     run: RunDefaults = Field(default_factory=RunDefaults)
 

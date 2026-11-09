@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 from climate_pipeline.domain.grid import GridSpec
-from climate_pipeline.pipeline.static import STATIC_COLUMNS, copernicus_tile_names, static_covariates_frame
+from climate_pipeline.pipeline.static import (
+    STATIC_COLUMNS,
+    _static_frame,
+    copernicus_tile_names,
+    terrain_to_grid,
+)
 from climate_pipeline.processing.terrain import terrain_derivatives
 
 
@@ -40,7 +45,7 @@ def test_static_frame_on_target_grid(raster_factory, aoi) -> None:
     rng = np.random.default_rng(1)
     dem = raster_factory(950 + rng.uniform(0, 50, size=(300, 300)), west=-76.7, north=3.6, resolution=0.001)
     grid = GridSpec.from_resolution("EPSG:9377", 5000, aoi)
-    frame = static_covariates_frame(dem, grid, aoi)
+    frame = _static_frame(grid, aoi, terrain_to_grid(dem, grid))
     assert set(STATIC_COLUMNS.values()) <= set(frame.columns)
     assert frame[list(STATIC_COLUMNS.values())].notna().all().all()
     assert frame["static_elevation_m"].between(950, 1000).all()
