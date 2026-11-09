@@ -412,6 +412,10 @@ class Pipeline:
         finally:
             for builder in builders.values():
                 builder.close()
+        if reports and request.output_format is not OutputFormat.POSTGRES:
+            from climate_pipeline.pipeline.provenance import write_product_status
+
+            write_product_status(self.lake, self.catalog)  # Postgres: views over ingest_manifest
         return reports, errors
 
     @staticmethod

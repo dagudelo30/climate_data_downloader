@@ -41,6 +41,7 @@ data/silver/
 data/gold/
 data/state/
 data/tmp/
+data/snapshots/
 # Run reports of local/CI runs (anchored: the example evidence keeps its own reports/)
 /reports/
 /logs/

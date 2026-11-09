@@ -708,6 +708,33 @@ def sync(
 
 
 @app.command()
+def snapshot(
+    tag: Annotated[str | None, typer.Option(help="Snapshot name (default: today, YYYY-MM-DD).")] = None,
+    archive: Annotated[bool, typer.Option(help="Also write <tag>.zip next to the folder.")] = False,
+    config: ConfigOption = None,
+    data_root: DataRootOption = None,
+    log_level: LogOption = "INFO",
+) -> None:
+    """Freeze Gold (every grid), product status and catalog under <lake>/snapshots/<tag>/ with
+    SHA-256 checksums, git commit and configuration: the exact data a model was trained on."""
+    from climate_pipeline.pipeline.provenance import create_snapshot
+
+    _logging(log_level)
+    try:
+        exercise = Exercise.resolve(config, data_root, output_format=OutputFormat.PARQUET)
+        pipeline = exercise.pipeline()
+        manifest = create_snapshot(pipeline.lake, pipeline.catalog, tag, config_path=config, archive=archive)
+    except ClimatePipelineError as exc:
+        _fail(exc)
+        return
+    typer.echo(
+        json.dumps(
+            {key: manifest[key] for key in ("tag", "period", "git_commit", "rows")}, indent=2, default=str
+        )
+    )
+
+
+@app.command()
 def variables(config: ConfigOption = None) -> None:
     """List the variable catalog (names, units, bounds, resampling, weekly rule) and the
     columns dropped as redundant (finer resolution, then latency, then the sensible product)."""
