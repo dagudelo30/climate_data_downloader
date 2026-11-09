@@ -62,7 +62,9 @@ footer { color:var(--muted); font-size:12.5px; border-top:1px solid var(--rule);
   <p class="lede">Del proveedor a la tabla del modelo: cada fuente diaria se descarga solo cuando ya debe existir, tal
   como viene (grilla y resolución nativas), y Gold se genera a las resoluciones que se pidan (por ejemplo 100 m, 500 m,
   1 km y 5 km), cada una calculada directamente desde los datos nativos. Todo es idempotente: volver a correr solo pide
-  lo que falta o lo preliminar.</p>
+  lo que falta o lo preliminar. En operación, un cron diario (<code>.github/workflows/db-sync.yml</code>) corre
+  <code>sync</code>: le pregunta a PostgreSQL qué falta entre <code>run.start_date</code> y hoy, baja solo eso y deja la
+  base al día.</p>
 </header>
 <div class="diagram"><pre class="mermaid">
 flowchart LR
@@ -72,24 +74,26 @@ flowchart LR
     CHC[CHC / GloH2O&lt;br/&gt;CHIRPS, MSWEP opcionales]
     OSM[OpenStreetMap&lt;br/&gt;Overpass]
   end
-  PLAN{{plan&lt;br/&gt;latencia por fuente}}
+  CRON([cron diario&lt;br/&gt;db-sync.yml])
+  PLAN{{plan&lt;br/&gt;¿qué falta entre start y hoy?&lt;br/&gt;latencia por fuente}}
   B[(Bronze&lt;br/&gt;NetCDF crudo&lt;br/&gt;grilla nativa)]
   S[(Silver&lt;br/&gt;unidades, QC físico,&lt;br/&gt;recorte all_touched)]
-  T{{Grillas pedidas&lt;br/&gt;--target-grid}}
-  G1[(Gold 100 m)]
-  G4[(Gold 500 m)]
-  G2[(Gold 1 km)]
-  G3[(Gold 5 km)]
-  W[Semana epidemiológica&lt;br/&gt;dom-sáb, _ndays]
-  ST[(static_covariates&lt;br/&gt;terreno + urbano + OSM)]
-  CAT[(state/manifest&lt;br/&gt;catálogo de ingesta)]
+  T{{Grillas pedidas&lt;br/&gt;run.target_grids}}
+  subgraph PG[PostgreSQL / Parquet]
+    CAT[(ingest_manifest&lt;br/&gt;catálogo)]
+    G[(gold_daily · gold_epiweekly&lt;br/&gt;100 m · 500 m · 1 km · 5 km)]
+    ST[(static_covariates&lt;br/&gt;terreno + urbano + OSM)]
+  end
+  COV[coverage&lt;br/&gt;huecos y días de atraso]
   AV[availability&lt;br/&gt;latencia operativa]
-  CDS &amp; GEE &amp; CHC --&gt; PLAN --&gt; B --&gt; S --&gt; T --&gt; G1 &amp; G4 &amp; G2 &amp; G3
-  G1 &amp; G4 &amp; G2 &amp; G3 --&gt; W
-  GEE &amp; OSM --&gt; ST
+  CRON --&gt; PLAN
+  CAT -.-&gt; PLAN
+  CDS &amp; GEE &amp; CHC --&gt; PLAN --&gt; B --&gt; S --&gt; T --&gt; G
   B -.-&gt; CAT
   S -.-&gt; CAT
-  CAT -.-&gt; PLAN
+  GEE &amp; OSM --&gt; ST
+  G --&gt; COV
+  CAT -.-&gt; COV
   GEE &amp; CDS &amp; CHC -.-&gt; AV
 </pre></div>
 <section>
@@ -98,7 +102,8 @@ flowchart LR
     <li><strong>Disponibilidad</strong>. <code>climate-pipeline availability</code> consulta a cada proveedor el último
     día completo sobre el AOI y la última semana epidemiológica completa.</li>
     <li><strong>Plan</strong>. Por cada (variable, día) decide <code>new</code>, <code>retry_missing</code>,
-    <code>prelim_upgrade</code> o <code>not_yet_expected</code>, según la latencia configurada y el catálogo
+    <code>prelim_upgrade</code>, <code>missing_given_up</code> o <code>not_yet_expected</code>, según la latencia
+    configurada y el catálogo: la tabla <code>ingest_manifest</code> de PostgreSQL o los manifiestos Parquet de
     <code>state/manifest</code>.</li>
     <li><strong>Bronze</strong>. Descarga en paralelo, en la grilla nativa del proveedor y con margen alrededor del AOI.
     Lo sub-diario (IMERG cada 30 min, GOES cada 10 min, SMAP cada 3 h) se agrega al día civil de Colombia (UTC−5) y el
@@ -113,6 +118,11 @@ flowchart LR
     días; cada columna trae <code>_ndays</code>.</li>
     <li><strong>Estáticas</strong> (<code>build-static --layers terrain,urban,osm</code>). Terreno del DEM, forma urbana
     desde Earth Engine (compuestos anuales) y vías de OpenStreetMap, calculadas en cada grilla pedida.</li>
+    <li><strong>PostgreSQL</strong> (<code>sync</code>, <code>--output-format postgres</code>). Gold se escribe por
+    columnas (<code>INSERT … ON CONFLICT DO UPDATE</code> solo de las columnas que trae la corrida), así que un runner
+    efímero que solo tiene el Silver de hoy nunca borra lo que otras fuentes escribieron antes.</li>
+    <li><strong>Cobertura</strong> (<code>coverage</code>). Por fuente y grilla: días con dato, días sin píxel válido,
+    días no publicados, huecos y cuántos días va atrás respecto de lo que ya podría estar publicado.</li>
     <li><strong>Selección sin redundancia</strong>. Antes de descargar, el catálogo deja una columna por magnitud física:
     más reciente, luego mejor resolución, luego más sentido.</li>
   </ol>
@@ -129,10 +139,14 @@ flowchart LR
     <tr><td><code>make-raster</code></td><td>Tabla Gold → GeoTIFF/COG (día, semana o estática).</td></tr>
     <tr><td><code>variables</code></td><td>Catálogo y decisiones de redundancia.</td></tr>
     <tr><td><code>catalog</code></td><td>Estado de la ingesta por fuente, capa y estado.</td></tr>
+    <tr><td><code>coverage</code></td><td>Huecos y días de atraso por fuente y grilla entre dos fechas.</td></tr>
+    <tr><td><code>sync</code></td><td>Ciclo completo contra PostgreSQL: plan desde la base → descarga → Gold → semanas →
+      estáticas → cobertura.</td></tr>
+    <tr><td><code>db init | status | import-lake</code></td><td>Migraciones, estado de la base y carga de un lago local.</td></tr>
     </tbody></table></div>
-  <p class="muted">Corrida diaria operativa: <code>run --incremental</code> (la ventana de cada fuente sale de
-  su latencia) seguida de <code>availability</code>. Ejemplo completo:
-  <code>examples/cali_operational/run_pipeline.sh</code>.</p>
+  <p class="muted">Todo se declara en <code>run:</code> de <code>examples/cali_operational/pipeline.yaml</code> (AOI,
+  fuentes, fecha inicial, grillas, estáticas): <code>climate-pipeline sync --config examples/cali_operational/pipeline.yaml</code>.
+  Ejemplo completo local: <code>examples/cali_operational/run_pipeline.sh</code>.</p>
 </section>
 <footer>Generado por <code>docs/make_docs.py</code>. El diagrama se dibuja con Mermaid (se carga desde jsDelivr).</footer>
 

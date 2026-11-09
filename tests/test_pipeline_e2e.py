@@ -200,3 +200,26 @@ def test_gold_keeps_every_aoi_cell_when_a_cell_has_no_value(
     assert daily["chirps_precip"].isna().any() and daily["chirps_precip"].notna().any()
     assert daily[["latitude", "longitude"]].notna().all().all()
     assert len(weekly) == gold.cells_in_aoi
+
+
+def test_every_partition_has_every_selected_column(settings, pipeline_config, lake, chirps_mirror, aoi_file):
+    """A day where only one source published still carries all selected columns (NA)."""
+    chirps_mirror["publish"](START, "final")
+    pipeline = Pipeline(settings, pipeline_config, lake=lake)
+    request = RunRequest(
+        aoi_path=aoi_file,
+        sources=["chirps"],
+        start_date=START,
+        end_date=START,
+        target_grids=[GRIDS[1]],
+        today=date(2026, 10, 27),
+    )
+    assert pipeline.run(request).ok
+    store = open_gold_store(lake.gold_layout("5km"), OutputFormat.PARQUET)
+    daily = store.read_daily([START])
+    selected = pipeline.gold_columns()
+    assert selected <= set(daily.columns) and len(selected) > 50
+    assert daily["chirps_precip"].notna().all() and daily["agera5_temp_mean"].isna().all()
+    weekly = store.query(f"SELECT * FROM {GoldTable.EPIWEEKLY}")
+    assert {f"{column}_ndays" for column in selected} <= set(weekly.columns)
+    assert (weekly["agera5_temp_mean_ndays"] == 0).all()

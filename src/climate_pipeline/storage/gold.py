@@ -1,13 +1,14 @@
-"""Gold analytical stores: partitioned Parquet or a DuckDB database.
+"""Gold analytical stores: partitioned Parquet, a DuckDB file or PostgreSQL.
 
-Tables (identical schema in both back-ends):
+Tables (identical schema in every back-end):
 
 * ``gold_daily``      key ``(cell_id, date)``
 * ``gold_epiweekly``  key ``(cell_id, epi_year, epi_week)``
 * ``static_covariates`` key ``cell_id``
 
 Writes are idempotent upserts per partition (one date / one epi week), and the schema
-evolves by adding columns when a new source starts contributing.
+evolves by adding columns when a new source starts contributing. PostgreSQL lives in
+:mod:`climate_pipeline.storage.postgres` (column-wise upserts, one partition per grid).
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
+from climate_pipeline.config import Settings
 from climate_pipeline.domain.dates import EpiWeek
 from climate_pipeline.storage.layout import GoldLayout
 
@@ -29,6 +31,7 @@ from climate_pipeline.storage.layout import GoldLayout
 class OutputFormat(StrEnum):
     PARQUET = "parquet"
     DUCKDB = "duckdb"
+    POSTGRES = "postgres"
 
 
 class GoldTable(StrEnum):
@@ -48,6 +51,10 @@ def _write_parquet_atomic(frame: pd.DataFrame, path: Path) -> None:
 
 
 class GoldStore(ABC):
+    #: True when a write only touches the columns it carries (Postgres); False when it replaces
+    #: the whole partition (Parquet, DuckDB), so writers must send every column.
+    merges_columns = False
+
     def __init__(self, layout: GoldLayout) -> None:
         self.layout = layout
 
@@ -66,6 +73,35 @@ class GoldStore(ABC):
     @abstractmethod
     def query(self, sql: str, parameters: Sequence[object] | None = None) -> pd.DataFrame:
         """Run SQL against the views/tables ``gold_daily``, ``gold_epiweekly``, ``static_covariates``."""
+
+    def close(self) -> None:  # noqa: B027 - optional hook
+        """Release connections (no-op for file back-ends)."""
+
+    def stale_weeks(self) -> list[EpiWeek]:
+        """Epi weeks whose daily rows changed after the weekly rows (tracked by Postgres only)."""
+        return []
+
+    def columns(self, table: GoldTable) -> list[str]:
+        """Columns of ``table`` (empty when the table does not exist yet)."""
+        try:
+            return list(self.query(f"SELECT * FROM {table} LIMIT 0").columns)
+        except Exception:  # missing Parquet folder / DuckDB table / Postgres partition
+            return []
+
+    def daily_value_counts(self, start: date, end: date, columns: Sequence[str]) -> pd.DataFrame:
+        """Per day in ``[start, end]``: rows and non-null values of each existing ``columns``."""
+        present = [column for column in columns if column in set(self.columns(GoldTable.DAILY))]
+        counts = "".join(f', count("{column}") AS "{column}"' for column in present)
+        try:
+            frame = self.query(
+                f'SELECT "date", count(*) AS n_rows{counts} FROM {GoldTable.DAILY} '
+                'WHERE "date" BETWEEN ? AND ? GROUP BY "date" ORDER BY "date"',
+                [start, end],
+            )
+        except Exception:
+            return pd.DataFrame(columns=["date", "n_rows", *present])
+        frame["date"] = pd.to_datetime(frame["date"]).dt.date
+        return frame
 
 
 class ParquetGoldStore(GoldStore):
@@ -180,8 +216,16 @@ class DuckDBGoldStore(GoldStore):
             return connection.execute(sql, parameters or []).df()
 
 
-def open_gold_store(layout: GoldLayout, output_format: OutputFormat | str) -> GoldStore:
+def open_gold_store(
+    layout: GoldLayout, output_format: OutputFormat | str, settings: Settings | None = None
+) -> GoldStore:
+    """Gold store of one grid. ``postgres`` connects with ``settings.database_url`` and
+    ``settings.database_schema`` (default: the environment / ``.env``)."""
     output_format = OutputFormat(output_format)
     if output_format is OutputFormat.PARQUET:
         return ParquetGoldStore(layout)
-    return DuckDBGoldStore(layout)
+    if output_format is OutputFormat.DUCKDB:
+        return DuckDBGoldStore(layout)
+    from climate_pipeline.storage.postgres import PostgresGoldStore, database_from
+
+    return PostgresGoldStore(layout, database_from(settings))

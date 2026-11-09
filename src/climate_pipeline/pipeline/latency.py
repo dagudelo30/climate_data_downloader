@@ -13,6 +13,11 @@ reason              when
 ``forced``          ``--force``
 ==================  ===========================================================
 
+With ``retry_since`` (used by ``sync`` over long windows), a day recorded as ``missing``
+before that date is not asked for again (``missing_given_up``): a Landsat day without an
+overpass stays without one, and a daily run over a whole year would otherwise re-query
+hundreds of such days.
+
 Dates newer than ``today - earliest_lag`` are not requested at all (counted as
 ``not_yet_expected``), so a scheduled run never asks a provider for data it cannot
 have yet.
@@ -72,6 +77,7 @@ def plan_source(
     end: date | None = None,
     incremental: bool = False,
     force: bool = False,
+    retry_since: date | None = None,
 ) -> SourcePlan:
     available_until = today - timedelta(days=latency.earliest_lag_days)
     final_until = today - timedelta(days=latency.final_lag_days)
@@ -101,6 +107,9 @@ def plan_source(
             elif status is None:
                 reason = "new"
             elif status is ProductStatus.MISSING:
+                if retry_since is not None and day < retry_since:
+                    plan.reasons["missing_given_up"] += 1
+                    continue
                 reason = "retry_missing"
             elif status is ProductStatus.PRELIM and latency.reprocess_prelim and day <= final_until:
                 reason = "prelim_upgrade"

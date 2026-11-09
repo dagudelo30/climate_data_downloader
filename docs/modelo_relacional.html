@@ -59,87 +59,113 @@ footer { color:var(--muted); font-size:12.5px; border-top:1px solid var(--rule);
 <header style="display:grid;gap:10px">
   <div class="eyebrow">Dengue.IA Cali · climate-pipeline · Gold</div>
   <h1>Modelo relacional</h1>
-  <p class="lede">Tres tablas por grilla (100 m, 500 m, 1 km, 5 km o las que se pidan), unidas por <code>cell_id</code>, más
-  el catálogo de ingesta. Las grillas están alineadas a múltiplos de su resolución, así que las escalas se cruzan por
-  aritmética de índices, sin tablas de cruce.</p>
+  <p class="lede">En PostgreSQL (esquema <code>climate</code>): <code>grid</code> y <code>cell</code> (con el polígono de
+  cada celda si hay PostGIS), las tres tablas Gold particionadas por grilla (100 m, 500 m, 1 km, 5 km o las que se
+  pidan), el diccionario <code>variable</code> y el catálogo <code>ingest_manifest</code>. En Parquet/DuckDB son las mismas
+  tablas por grilla, con latitud y longitud en cada fila. Las grillas están alineadas a múltiplos de su resolución, así
+  que las escalas se cruzan por aritmética de índices, sin tablas de cruce.</p>
 </header>
 <div class="diagram"><pre class="mermaid">
 erDiagram
-  GRID ||--o{ GOLD_DAILY : &quot;cell_id&quot;
-  GRID ||--o{ GOLD_EPIWEEKLY : &quot;cell_id&quot;
-  GRID ||--o{ STATIC_COVARIATES : &quot;cell_id&quot;
-  GOLD_DAILY }o--|| STATIC_COVARIATES : &quot;cell_id&quot;
-  GOLD_DAILY }o--|| GOLD_EPIWEEKLY : &quot;cell_id + semana de date&quot;
-  GRID_100M ||--|{ GRID_500M : &quot;25 celdas por celda&quot;
-  GRID_500M ||--|{ GRID_1KM : &quot;4 celdas por celda&quot;
-  GRID_1KM ||--|{ GRID_5KM : &quot;25 celdas por celda&quot;
-  MANIFEST }o--o{ GOLD_DAILY : &quot;date (rebuild si Silver cambió)&quot;
+  GRID ||--|{ CELL : &quot;grid_name&quot;
+  CELL ||--o{ GOLD_DAILY : &quot;grid_name, cell_id&quot;
+  CELL ||--o{ GOLD_EPIWEEKLY : &quot;grid_name, cell_id&quot;
+  CELL ||--o| STATIC_COVARIATES : &quot;grid_name, cell_id&quot;
+  VARIABLE ||--o{ GOLD_DAILY : &quot;una columna por variable&quot;
+  INGEST_MANIFEST }o--o{ GOLD_DAILY : &quot;date (rebuild si Silver cambió)&quot;
   GRID {
-    string crs &quot;EPSG:9377&quot;
-    float transform &quot;a,b,c,d,e,f&quot;
+    text grid_name PK &quot;100m, 500m, 1km, 5km&quot;
+    text crs &quot;EPSG:9377&quot;
+    float8_array transform &quot;a,b,c,d,e,f&quot;
     int width
     int height
-    string fingerprint
+    text fingerprint
+  }
+  CELL {
+    text grid_name PK
+    bigint cell_id PK &quot;fila*ancho + col&quot;
+    int row_index
+    int col_index
+    float8 latitude
+    float8 longitude
+    geometry geom &quot;polígono EPSG:4326 (PostGIS)&quot;
   }
   GOLD_DAILY {
-    bigint cell_id PK &quot;fila*ancho + col&quot;
+    text grid_name PK &quot;partición LIST&quot;
     date date PK
-    double latitude
-    double longitude
-    float imerg_precip
-    float agera5_temp_max &quot;y 71 columnas más&quot;
+    bigint cell_id PK
+    real imerg_precip
+    real agera5_temp_max &quot;y 71 columnas más&quot;
+    timestamptz updated_at
   }
   GOLD_EPIWEEKLY {
-    bigint cell_id PK
+    text grid_name PK
     smallint epi_year PK
-    tinyint epi_week PK
+    smallint epi_week PK
+    bigint cell_id PK
     date week_start
     date week_end
-    tinyint days_observed
-    float imerg_precip &quot;suma, exige 7 días&quot;
-    tinyint imerg_precip_ndays
+    smallint days_observed
+    real imerg_precip &quot;suma, exige 7 días&quot;
+    smallint imerg_precip_ndays
   }
   STATIC_COVARIATES {
+    text grid_name PK
     bigint cell_id PK
-    double latitude
-    double longitude
-    float static_elevation_m
-    float urban_buildings_frac &quot;y 22 columnas más&quot;
+    real static_elevation_m
+    real urban_buildings_frac &quot;y 22 columnas más&quot;
   }
-  MANIFEST {
-    string source PK
-    string variable PK
+  VARIABLE {
+    text gold_column PK
+    text source
+    text units
+    float8 valid_min
+    float8 valid_max
+    text weekly_aggregation
+    bool selected
+  }
+  INGEST_MANIFEST {
+    text source PK
+    text layer PK &quot;bronze|silver|gold&quot;
+    text variable PK
     date date PK
-    string layer PK &quot;bronze|silver|gold&quot;
-    string status &quot;final|prelim|missing&quot;
-    string path
+    text status &quot;final|prelim|missing&quot;
+    text path
     bigint updated_ns
   }
 </pre></div>
 <section>
   <h2>Tablas</h2>
   <div class="scroll"><table>
-    <thead><tr><th>Tabla</th><th>Clave</th><th>Ruta</th><th>Contenido</th></tr></thead><tbody>
-    <tr><td><code>grid.json</code></td><td>—</td><td class="mono">gold/&lt;grilla&gt;/grid.json</td>
+    <thead><tr><th>Tabla</th><th>Clave</th><th>PostgreSQL</th><th>Parquet</th><th>Contenido</th></tr></thead><tbody>
+    <tr><td><code>grid</code></td><td class="mono">grid_name</td><td class="mono">climate.grid</td>
+      <td class="mono">gold/&lt;grilla&gt;/grid.json</td>
       <td>CRS, transformada afín y tamaño: define <code>cell_id = fila × ancho + columna</code>.</td></tr>
-    <tr><td><code>gold_daily</code></td><td class="mono">(cell_id, date)</td>
+    <tr><td><code>cell</code></td><td class="mono">(grid_name, cell_id)</td><td class="mono">climate.cell</td>
+      <td>latitude/longitude en cada tabla</td>
+      <td>Celdas del AOI (<code>all_touched</code>), centroide y polígono <code>geom</code> (PostGIS) para QGIS.</td></tr>
+    <tr><td><code>gold_daily</code></td><td class="mono">(grid_name, date, cell_id)</td>
+      <td class="mono">climate.gold_daily__&lt;grilla&gt;</td>
       <td class="mono">gold/&lt;grilla&gt;/parquet/daily/year=/month=/date=.parquet</td>
       <td>Una fila por celda del AOI y día, con todas las columnas diarias. Panel completo: los faltantes son NA.</td></tr>
-    <tr><td><code>gold_epiweekly</code></td><td class="mono">(cell_id, epi_year, epi_week)</td>
+    <tr><td><code>gold_epiweekly</code></td><td class="mono">(grid_name, epi_year, epi_week, cell_id)</td>
+      <td class="mono">climate.gold_epiweekly__&lt;grilla&gt;</td>
       <td class="mono">gold/&lt;grilla&gt;/parquet/epiweekly/epi_year=/epi_week=.parquet</td>
       <td>Agregado domingo-sábado con <code>week_start</code>, <code>week_end</code>, <code>days_observed</code> y
       <code>&lt;columna&gt;_ndays</code>.</td></tr>
-    <tr><td><code>static_covariates</code></td><td class="mono">(cell_id)</td>
+    <tr><td><code>static_covariates</code></td><td class="mono">(grid_name, cell_id)</td>
+      <td class="mono">climate.static_covariates__&lt;grilla&gt;</td>
       <td class="mono">gold/&lt;grilla&gt;/parquet/static/covariates.parquet</td>
-      <td>Terreno, forma urbana y OSM. Se une con <code>gold_daily</code> y <code>gold_epiweekly</code> por
-      <code>cell_id</code>.</td></tr>
-    <tr><td><code>manifest</code></td><td class="mono">(source, variable, date, layer)</td>
-      <td class="mono">state/manifest/&lt;fuente&gt;.parquet</td>
+      <td>Terreno, forma urbana y OSM. Se une con las tablas diaria y semanal por <code>cell_id</code>.</td></tr>
+    <tr><td><code>variable</code></td><td class="mono">gold_column</td><td class="mono">climate.variable</td><td>—</td>
+      <td>Diccionario desde el catálogo del código: unidades, rango físico, remuestreo, regla semanal, seleccionada.</td></tr>
+    <tr><td><code>ingest_manifest</code></td><td class="mono">(source, layer, variable, date)</td>
+      <td class="mono">climate.ingest_manifest</td><td class="mono">state/manifest/&lt;fuente&gt;.parquet</td>
       <td>Estado de cada descarga (final, prelim, missing) y marca de tiempo: decide qué volver a pedir y qué días de
-      Gold reconstruir.</td></tr>
+      Gold reconstruir. Vistas <code>ingest_status</code> y <code>source_freshness</code> para monitoreo.</td></tr>
     </tbody></table></div>
   <p class="muted">Las mismas tablas existen en DuckDB (<code>gold/&lt;grilla&gt;/climate.duckdb</code>) con
-  <code>--output-format duckdb</code>.</p>
+  <code>--output-format duckdb</code>. Migraciones versionadas en <code>src/climate_pipeline/storage/migrations/</code>.</p>
 </section>
 <section>
   <h2>Cómo se cruzan las escalas</h2>
@@ -150,11 +176,17 @@ erDiagram
   <p>La función <code>parent_cell_ids(fine, coarse, cell_ids)</code> de <code>climate_pipeline.domain.grid</code> lo
   calcula. Cada grilla se calcula desde los datos nativos a su propia resolución; con <code>--nested</code>, además, el
   valor de una celda gruesa es exactamente el promedio de sus celdas finas.</p>
-  <div class="diagram"><code>-- DuckDB: semana epidemiológica de 1 km con covariables estáticas<br/>
+  <div class="diagram"><code>-- PostgreSQL: semanas de 2026 en 1 km con covariables estáticas y polígono de la celda<br/>
+  SELECT c.geom, w.*, s.static_elevation_m, s.urban_buildings_frac<br/>
+  FROM climate.gold_epiweekly w<br/>
+  JOIN climate.cell c USING (grid_name, cell_id)<br/>
+  JOIN climate.static_covariates s USING (grid_name, cell_id)<br/>
+  WHERE w.grid_name = '1km' AND w.epi_year = 2026;<br/><br/>
+  -- DuckDB sobre Parquet: lo mismo desde el lago local<br/>
   SELECT w.*, s.* EXCLUDE (cell_id, latitude, longitude)<br/>
-  FROM read_parquet('data/operational/gold/1km/parquet/epiweekly/**/*.parquet') w<br/>
-  JOIN read_parquet('data/operational/gold/1km/parquet/static/covariates.parquet') s USING (cell_id)<br/>
-  WHERE w.epi_year = 2026 AND w.epi_week BETWEEN 36 AND 43;</code></div>
+  FROM read_parquet('data/gold/1km/parquet/epiweekly/**/*.parquet') w<br/>
+  JOIN read_parquet('data/gold/1km/parquet/static/covariates.parquet') s USING (cell_id)<br/>
+  WHERE w.epi_year = 2026;</code></div>
 </section>
 <footer>Generado por <code>docs/make_docs.py</code>. El diagrama se dibuja con Mermaid (se carga desde jsDelivr).</footer>
 

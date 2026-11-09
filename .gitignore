@@ -41,16 +41,6 @@ data/silver/
 data/gold/
 data/state/
 data/tmp/
-# Lake of the operational example (examples/cali_operational)
-data/operational/
 # Run reports of local/CI runs (anchored: the example evidence keeps its own reports/)
 /reports/
 /logs/
-
-# Old notebook layout
-data/raw/
-data/interim/
-data/processed/
-
-# Optional per-field GIFs (make_weekly_gif.py --per-field); the versioned GIFs cover every field
-outputs/*/animations/variables/

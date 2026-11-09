@@ -483,77 +483,95 @@ flowchart LR
     CHC[CHC / GloH2O<br/>CHIRPS, MSWEP opcionales]
     OSM[OpenStreetMap<br/>Overpass]
   end
-  PLAN{{plan<br/>latencia por fuente}}
+  CRON([cron diario<br/>db-sync.yml])
+  PLAN{{plan<br/>¿qué falta entre start y hoy?<br/>latencia por fuente}}
   B[(Bronze<br/>NetCDF crudo<br/>grilla nativa)]
   S[(Silver<br/>unidades, QC físico,<br/>recorte all_touched)]
-  T{{Grillas pedidas<br/>--target-grid}}
-  G1[(Gold 100 m)]
-  G4[(Gold 500 m)]
-  G2[(Gold 1 km)]
-  G3[(Gold 5 km)]
-  W[Semana epidemiológica<br/>dom-sáb, _ndays]
-  ST[(static_covariates<br/>terreno + urbano + OSM)]
-  CAT[(state/manifest<br/>catálogo de ingesta)]
+  T{{Grillas pedidas<br/>run.target_grids}}
+  subgraph PG[PostgreSQL / Parquet]
+    CAT[(ingest_manifest<br/>catálogo)]
+    G[(gold_daily · gold_epiweekly<br/>100 m · 500 m · 1 km · 5 km)]
+    ST[(static_covariates<br/>terreno + urbano + OSM)]
+  end
+  COV[coverage<br/>huecos y días de atraso]
   AV[availability<br/>latencia operativa]
-  CDS & GEE & CHC --> PLAN --> B --> S --> T --> G1 & G4 & G2 & G3
-  G1 & G4 & G2 & G3 --> W
-  GEE & OSM --> ST
+  CRON --> PLAN
+  CAT -.-> PLAN
+  CDS & GEE & CHC --> PLAN --> B --> S --> T --> G
   B -.-> CAT
   S -.-> CAT
-  CAT -.-> PLAN
+  GEE & OSM --> ST
+  G --> COV
+  CAT -.-> COV
   GEE & CDS & CHC -.-> AV
 """
 
 ER = """
 erDiagram
-  GRID ||--o{ GOLD_DAILY : "cell_id"
-  GRID ||--o{ GOLD_EPIWEEKLY : "cell_id"
-  GRID ||--o{ STATIC_COVARIATES : "cell_id"
-  GOLD_DAILY }o--|| STATIC_COVARIATES : "cell_id"
-  GOLD_DAILY }o--|| GOLD_EPIWEEKLY : "cell_id + semana de date"
-  GRID_100M ||--|{ GRID_500M : "25 celdas por celda"
-  GRID_500M ||--|{ GRID_1KM : "4 celdas por celda"
-  GRID_1KM ||--|{ GRID_5KM : "25 celdas por celda"
-  MANIFEST }o--o{ GOLD_DAILY : "date (rebuild si Silver cambió)"
+  GRID ||--|{ CELL : "grid_name"
+  CELL ||--o{ GOLD_DAILY : "grid_name, cell_id"
+  CELL ||--o{ GOLD_EPIWEEKLY : "grid_name, cell_id"
+  CELL ||--o| STATIC_COVARIATES : "grid_name, cell_id"
+  VARIABLE ||--o{ GOLD_DAILY : "una columna por variable"
+  INGEST_MANIFEST }o--o{ GOLD_DAILY : "date (rebuild si Silver cambió)"
   GRID {
-    string crs "EPSG:9377"
-    float transform "a,b,c,d,e,f"
+    text grid_name PK "100m, 500m, 1km, 5km"
+    text crs "EPSG:9377"
+    float8_array transform "a,b,c,d,e,f"
     int width
     int height
-    string fingerprint
+    text fingerprint
+  }
+  CELL {
+    text grid_name PK
+    bigint cell_id PK "fila*ancho + col"
+    int row_index
+    int col_index
+    float8 latitude
+    float8 longitude
+    geometry geom "polígono EPSG:4326 (PostGIS)"
   }
   GOLD_DAILY {
-    bigint cell_id PK "fila*ancho + col"
+    text grid_name PK "partición LIST"
     date date PK
-    double latitude
-    double longitude
-    float imerg_precip
-    float agera5_temp_max "y 71 columnas más"
+    bigint cell_id PK
+    real imerg_precip
+    real agera5_temp_max "y 71 columnas más"
+    timestamptz updated_at
   }
   GOLD_EPIWEEKLY {
-    bigint cell_id PK
+    text grid_name PK
     smallint epi_year PK
-    tinyint epi_week PK
+    smallint epi_week PK
+    bigint cell_id PK
     date week_start
     date week_end
-    tinyint days_observed
-    float imerg_precip "suma, exige 7 días"
-    tinyint imerg_precip_ndays
+    smallint days_observed
+    real imerg_precip "suma, exige 7 días"
+    smallint imerg_precip_ndays
   }
   STATIC_COVARIATES {
+    text grid_name PK
     bigint cell_id PK
-    double latitude
-    double longitude
-    float static_elevation_m
-    float urban_buildings_frac "y 22 columnas más"
+    real static_elevation_m
+    real urban_buildings_frac "y 22 columnas más"
   }
-  MANIFEST {
-    string source PK
-    string variable PK
+  VARIABLE {
+    text gold_column PK
+    text source
+    text units
+    float8 valid_min
+    float8 valid_max
+    text weekly_aggregation
+    bool selected
+  }
+  INGEST_MANIFEST {
+    text source PK
+    text layer PK "bronze|silver|gold"
+    text variable PK
     date date PK
-    string layer PK "bronze|silver|gold"
-    string status "final|prelim|missing"
-    string path
+    text status "final|prelim|missing"
+    text path
     bigint updated_ns
   }
 """
@@ -567,7 +585,9 @@ def flow_page() -> str:
   <p class="lede">Del proveedor a la tabla del modelo: cada fuente diaria se descarga solo cuando ya debe existir, tal
   como viene (grilla y resolución nativas), y Gold se genera a las resoluciones que se pidan (por ejemplo 100 m, 500 m,
   1 km y 5 km), cada una calculada directamente desde los datos nativos. Todo es idempotente: volver a correr solo pide
-  lo que falta o lo preliminar.</p>
+  lo que falta o lo preliminar. En operación, un cron diario (<code>.github/workflows/db-sync.yml</code>) corre
+  <code>sync</code>: le pregunta a PostgreSQL qué falta entre <code>run.start_date</code> y hoy, baja solo eso y deja la
+  base al día.</p>
 </header>
 <div class="diagram"><pre class="mermaid">{esc(FLOW)}</pre></div>
 <section>
@@ -576,7 +596,8 @@ def flow_page() -> str:
     <li><strong>Disponibilidad</strong>. <code>climate-pipeline availability</code> consulta a cada proveedor el último
     día completo sobre el AOI y la última semana epidemiológica completa.</li>
     <li><strong>Plan</strong>. Por cada (variable, día) decide <code>new</code>, <code>retry_missing</code>,
-    <code>prelim_upgrade</code> o <code>not_yet_expected</code>, según la latencia configurada y el catálogo
+    <code>prelim_upgrade</code>, <code>missing_given_up</code> o <code>not_yet_expected</code>, según la latencia
+    configurada y el catálogo: la tabla <code>ingest_manifest</code> de PostgreSQL o los manifiestos Parquet de
     <code>state/manifest</code>.</li>
     <li><strong>Bronze</strong>. Descarga en paralelo, en la grilla nativa del proveedor y con margen alrededor del AOI.
     Lo sub-diario (IMERG cada 30 min, GOES cada 10 min, SMAP cada 3 h) se agrega al día civil de Colombia (UTC−5) y el
@@ -591,6 +612,11 @@ def flow_page() -> str:
     días; cada columna trae <code>_ndays</code>.</li>
     <li><strong>Estáticas</strong> (<code>build-static --layers terrain,urban,osm</code>). Terreno del DEM, forma urbana
     desde Earth Engine (compuestos anuales) y vías de OpenStreetMap, calculadas en cada grilla pedida.</li>
+    <li><strong>PostgreSQL</strong> (<code>sync</code>, <code>--output-format postgres</code>). Gold se escribe por
+    columnas (<code>INSERT … ON CONFLICT DO UPDATE</code> solo de las columnas que trae la corrida), así que un runner
+    efímero que solo tiene el Silver de hoy nunca borra lo que otras fuentes escribieron antes.</li>
+    <li><strong>Cobertura</strong> (<code>coverage</code>). Por fuente y grilla: días con dato, días sin píxel válido,
+    días no publicados, huecos y cuántos días va atrás respecto de lo que ya podría estar publicado.</li>
     <li><strong>Selección sin redundancia</strong>. Antes de descargar, el catálogo deja una columna por magnitud física:
     más reciente, luego mejor resolución, luego más sentido.</li>
   </ol>
@@ -607,10 +633,14 @@ def flow_page() -> str:
     <tr><td><code>make-raster</code></td><td>Tabla Gold → GeoTIFF/COG (día, semana o estática).</td></tr>
     <tr><td><code>variables</code></td><td>Catálogo y decisiones de redundancia.</td></tr>
     <tr><td><code>catalog</code></td><td>Estado de la ingesta por fuente, capa y estado.</td></tr>
+    <tr><td><code>coverage</code></td><td>Huecos y días de atraso por fuente y grilla entre dos fechas.</td></tr>
+    <tr><td><code>sync</code></td><td>Ciclo completo contra PostgreSQL: plan desde la base → descarga → Gold → semanas →
+      estáticas → cobertura.</td></tr>
+    <tr><td><code>db init | status | import-lake</code></td><td>Migraciones, estado de la base y carga de un lago local.</td></tr>
     </tbody></table></div>
-  <p class="muted">Corrida diaria operativa: <code>run --incremental</code> (la ventana de cada fuente sale de
-  su latencia) seguida de <code>availability</code>. Ejemplo completo:
-  <code>examples/cali_operational/run_pipeline.sh</code>.</p>
+  <p class="muted">Todo se declara en <code>run:</code> de <code>examples/cali_operational/pipeline.yaml</code> (AOI,
+  fuentes, fecha inicial, grillas, estáticas): <code>climate-pipeline sync --config examples/cali_operational/pipeline.yaml</code>.
+  Ejemplo completo local: <code>examples/cali_operational/run_pipeline.sh</code>.</p>
 </section>
 <footer>Generado por <code>docs/make_docs.py</code>. El diagrama se dibuja con Mermaid (se carga desde jsDelivr).</footer>
 """
@@ -622,35 +652,45 @@ def relational_page() -> str:
 <header style="display:grid;gap:10px">
   <div class="eyebrow">Dengue.IA Cali · climate-pipeline · Gold</div>
   <h1>Modelo relacional</h1>
-  <p class="lede">Tres tablas por grilla (100 m, 500 m, 1 km, 5 km o las que se pidan), unidas por <code>cell_id</code>, más
-  el catálogo de ingesta. Las grillas están alineadas a múltiplos de su resolución, así que las escalas se cruzan por
-  aritmética de índices, sin tablas de cruce.</p>
+  <p class="lede">En PostgreSQL (esquema <code>climate</code>): <code>grid</code> y <code>cell</code> (con el polígono de
+  cada celda si hay PostGIS), las tres tablas Gold particionadas por grilla (100 m, 500 m, 1 km, 5 km o las que se
+  pidan), el diccionario <code>variable</code> y el catálogo <code>ingest_manifest</code>. En Parquet/DuckDB son las mismas
+  tablas por grilla, con latitud y longitud en cada fila. Las grillas están alineadas a múltiplos de su resolución, así
+  que las escalas se cruzan por aritmética de índices, sin tablas de cruce.</p>
 </header>
 <div class="diagram"><pre class="mermaid">{esc(ER)}</pre></div>
 <section>
   <h2>Tablas</h2>
   <div class="scroll"><table>
-    <thead><tr><th>Tabla</th><th>Clave</th><th>Ruta</th><th>Contenido</th></tr></thead><tbody>
-    <tr><td><code>grid.json</code></td><td>—</td><td class="mono">gold/&lt;grilla&gt;/grid.json</td>
+    <thead><tr><th>Tabla</th><th>Clave</th><th>PostgreSQL</th><th>Parquet</th><th>Contenido</th></tr></thead><tbody>
+    <tr><td><code>grid</code></td><td class="mono">grid_name</td><td class="mono">climate.grid</td>
+      <td class="mono">gold/&lt;grilla&gt;/grid.json</td>
       <td>CRS, transformada afín y tamaño: define <code>cell_id = fila × ancho + columna</code>.</td></tr>
-    <tr><td><code>gold_daily</code></td><td class="mono">(cell_id, date)</td>
+    <tr><td><code>cell</code></td><td class="mono">(grid_name, cell_id)</td><td class="mono">climate.cell</td>
+      <td>latitude/longitude en cada tabla</td>
+      <td>Celdas del AOI (<code>all_touched</code>), centroide y polígono <code>geom</code> (PostGIS) para QGIS.</td></tr>
+    <tr><td><code>gold_daily</code></td><td class="mono">(grid_name, date, cell_id)</td>
+      <td class="mono">climate.gold_daily__&lt;grilla&gt;</td>
       <td class="mono">gold/&lt;grilla&gt;/parquet/daily/year=/month=/date=.parquet</td>
       <td>Una fila por celda del AOI y día, con todas las columnas diarias. Panel completo: los faltantes son NA.</td></tr>
-    <tr><td><code>gold_epiweekly</code></td><td class="mono">(cell_id, epi_year, epi_week)</td>
+    <tr><td><code>gold_epiweekly</code></td><td class="mono">(grid_name, epi_year, epi_week, cell_id)</td>
+      <td class="mono">climate.gold_epiweekly__&lt;grilla&gt;</td>
       <td class="mono">gold/&lt;grilla&gt;/parquet/epiweekly/epi_year=/epi_week=.parquet</td>
       <td>Agregado domingo-sábado con <code>week_start</code>, <code>week_end</code>, <code>days_observed</code> y
       <code>&lt;columna&gt;_ndays</code>.</td></tr>
-    <tr><td><code>static_covariates</code></td><td class="mono">(cell_id)</td>
+    <tr><td><code>static_covariates</code></td><td class="mono">(grid_name, cell_id)</td>
+      <td class="mono">climate.static_covariates__&lt;grilla&gt;</td>
       <td class="mono">gold/&lt;grilla&gt;/parquet/static/covariates.parquet</td>
-      <td>Terreno, forma urbana y OSM. Se une con <code>gold_daily</code> y <code>gold_epiweekly</code> por
-      <code>cell_id</code>.</td></tr>
-    <tr><td><code>manifest</code></td><td class="mono">(source, variable, date, layer)</td>
-      <td class="mono">state/manifest/&lt;fuente&gt;.parquet</td>
+      <td>Terreno, forma urbana y OSM. Se une con las tablas diaria y semanal por <code>cell_id</code>.</td></tr>
+    <tr><td><code>variable</code></td><td class="mono">gold_column</td><td class="mono">climate.variable</td><td>—</td>
+      <td>Diccionario desde el catálogo del código: unidades, rango físico, remuestreo, regla semanal, seleccionada.</td></tr>
+    <tr><td><code>ingest_manifest</code></td><td class="mono">(source, layer, variable, date)</td>
+      <td class="mono">climate.ingest_manifest</td><td class="mono">state/manifest/&lt;fuente&gt;.parquet</td>
       <td>Estado de cada descarga (final, prelim, missing) y marca de tiempo: decide qué volver a pedir y qué días de
-      Gold reconstruir.</td></tr>
+      Gold reconstruir. Vistas <code>ingest_status</code> y <code>source_freshness</code> para monitoreo.</td></tr>
     </tbody></table></div>
   <p class="muted">Las mismas tablas existen en DuckDB (<code>gold/&lt;grilla&gt;/climate.duckdb</code>) con
-  <code>--output-format duckdb</code>.</p>
+  <code>--output-format duckdb</code>. Migraciones versionadas en <code>src/climate_pipeline/storage/migrations/</code>.</p>
 </section>
 <section>
   <h2>Cómo se cruzan las escalas</h2>
@@ -661,11 +701,17 @@ def relational_page() -> str:
   <p>La función <code>parent_cell_ids(fine, coarse, cell_ids)</code> de <code>climate_pipeline.domain.grid</code> lo
   calcula. Cada grilla se calcula desde los datos nativos a su propia resolución; con <code>--nested</code>, además, el
   valor de una celda gruesa es exactamente el promedio de sus celdas finas.</p>
-  <div class="diagram"><code>-- DuckDB: semana epidemiológica de 1 km con covariables estáticas<br/>
+  <div class="diagram"><code>-- PostgreSQL: semanas de 2026 en 1 km con covariables estáticas y polígono de la celda<br/>
+  SELECT c.geom, w.*, s.static_elevation_m, s.urban_buildings_frac<br/>
+  FROM climate.gold_epiweekly w<br/>
+  JOIN climate.cell c USING (grid_name, cell_id)<br/>
+  JOIN climate.static_covariates s USING (grid_name, cell_id)<br/>
+  WHERE w.grid_name = '1km' AND w.epi_year = 2026;<br/><br/>
+  -- DuckDB sobre Parquet: lo mismo desde el lago local<br/>
   SELECT w.*, s.* EXCLUDE (cell_id, latitude, longitude)<br/>
-  FROM read_parquet('data/operational/gold/1km/parquet/epiweekly/**/*.parquet') w<br/>
-  JOIN read_parquet('data/operational/gold/1km/parquet/static/covariates.parquet') s USING (cell_id)<br/>
-  WHERE w.epi_year = 2026 AND w.epi_week BETWEEN 36 AND 43;</code></div>
+  FROM read_parquet('data/gold/1km/parquet/epiweekly/**/*.parquet') w<br/>
+  JOIN read_parquet('data/gold/1km/parquet/static/covariates.parquet') s USING (cell_id)<br/>
+  WHERE w.epi_year = 2026;</code></div>
 </section>
 <footer>Generado por <code>docs/make_docs.py</code>. El diagrama se dibuja con Mermaid (se carga desde jsDelivr).</footer>
 """

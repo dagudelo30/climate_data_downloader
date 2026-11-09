@@ -1,7 +1,10 @@
-"""Shared fixtures: synthetic AOIs, rasters, a local CHIRPS mirror and a fake CDS client."""
+"""Shared fixtures: synthetic AOIs, rasters, a local CHIRPS mirror, a fake CDS client and
+throw-away PostgreSQL schemas."""
 
 from __future__ import annotations
 
+import os
+import uuid
 import zipfile
 from collections.abc import Callable
 from datetime import date, datetime
@@ -10,10 +13,12 @@ from typing import Any
 
 import geopandas as gpd
 import numpy as np
+import psycopg
 import pytest
 import rasterio
 import xarray as xr
 from affine import Affine
+from pydantic import SecretStr
 from shapely.geometry import Polygon, box
 
 from climate_pipeline.config import Settings, load_pipeline_config
@@ -205,3 +210,31 @@ def pipeline_config(chirps_mirror: dict[str, Any]):
 @pytest.fixture
 def square() -> Polygon:
     return box(-76.6, 3.3, -76.4, 3.5)
+
+
+# --- PostgreSQL (integration) -----------------------------------------------------------
+@pytest.fixture
+def pg_database():
+    """A throw-away schema in the database of ``TEST_DATABASE_URL`` (skipped when unset).
+
+    Local: ``docker compose up -d db`` then
+    ``TEST_DATABASE_URL=postgresql://climate:climate@localhost:5433/climate uv run pytest``.
+    """
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("TEST_DATABASE_URL is not set")
+    from climate_pipeline.storage.postgres import Database
+
+    database = Database(url, f"test_{uuid.uuid4().hex[:12]}")
+    database.migrate()
+    yield database
+    database.close()
+    with psycopg.connect(url, autocommit=True) as connection:
+        connection.execute(f'DROP SCHEMA IF EXISTS "{database.schema}" CASCADE')
+
+
+@pytest.fixture
+def pg_settings(settings, pg_database) -> Settings:
+    return settings.model_copy(
+        update={"database_url": SecretStr(pg_database.url), "database_schema": pg_database.schema}
+    )

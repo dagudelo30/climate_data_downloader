@@ -2,16 +2,20 @@
 
 * :class:`Settings`: secrets and paths from environment variables / ``.env``.
 * :class:`PipelineConfig`: per-source behaviour (variables, latency, options), with
-  defaults defined here and optionally overridden by a YAML file (``config/pipeline.yaml``).
+  defaults defined here (``DEFAULT_SOURCES``) and optionally overridden by a YAML file.
+* :class:`RunDefaults` (``run:`` in the YAML): the exercise itself (AOI, sources, start date,
+  target grids, Gold back-end, static layers), so ``climate-pipeline sync --config X`` needs no
+  other flag. Command-line options override it.
 """
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, Field, SecretStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from climate_pipeline.domain.errors import ConfigurationError
@@ -31,6 +35,12 @@ class Settings(BaseSettings):
     mswep_service_account_key: Path | None = None
     mswep_oauth_client: Path | None = None
     mswep_token: Path = Path("data/auxiliary/tokens/mswep_token.json")
+    #: postgresql://user:password@host:5432/db ; needed by --output-format postgres and `sync`.
+    database_url: SecretStr | None = None
+    database_schema: str = "climate"
+
+    def database_url_value(self) -> str | None:
+        return self.database_url.get_secret_value() if self.database_url else None
 
 
 class LatencyConfig(BaseModel):
@@ -55,11 +65,53 @@ class SourceConfig(BaseModel):
     options: dict[str, Any] = Field(default_factory=dict)
 
 
+StaticLayer = Literal["terrain", "urban", "osm"]
+GoldBackend = Literal["parquet", "duckdb", "postgres"]
+
+
+class StaticDefaults(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    layers: list[StaticLayer] = Field(default_factory=lambda: ["terrain", "urban", "osm"])
+    #: Year of the urban composites; None → the year of the run's end date.
+    year: int | None = Field(default=None, ge=2015)
+
+
+class RunDefaults(BaseModel):
+    """The exercise declared in YAML; every field can be overridden on the command line."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    aoi_path: Path | None = None
+    sources: list[str] = Field(default_factory=list)
+    #: First day the database must hold; `sync` fills every gap from here to ``end_date``.
+    start_date: date | None = None
+    #: None → today (the operational, real-time setting).
+    end_date: date | None = None
+    #: Gold grids: ``{name: "<CRS>@<resolution>" | template raster}``.
+    target_grids: dict[str, str] = Field(default_factory=dict)
+    nested: bool = False
+    output_format: GoldBackend = "parquet"
+    static: StaticDefaults = Field(default_factory=StaticDefaults)
+    #: `coverage` flags a source as stale when its last Gold day is this many days behind
+    #: the last day the provider could have published (today − latency).
+    max_behind_days: int = Field(default=3, ge=0)
+
+    @field_validator("sources")
+    @classmethod
+    def _known(cls, value: list[str]) -> list[str]:
+        unknown = sorted(set(value) - set(DEFAULT_SOURCES))
+        if unknown:
+            raise ValueError(f"unknown sources in run.sources: {unknown}")
+        return value
+
+
 class PipelineConfig(BaseModel):
     clip_mode: Literal["polygon", "bbox"] = "polygon"
     #: One column per physical quantity (see climate_pipeline.domain.redundancy).
     deduplicate: bool = True
     sources: dict[str, SourceConfig]
+    run: RunDefaults = Field(default_factory=RunDefaults)
 
     @field_validator("sources")
     @classmethod
@@ -109,8 +161,11 @@ DEFAULT_SOURCES: dict[str, dict[str, Any]] = {
         "latency": {"final_lag_days": 7, "lookback_days": 30},
         "max_workers": 6,
     },
-    "imerg": {  # NASA GPM IMERG V07: provisional within ~2 days, final run ~3.5 months later
-        "latency": {"prelim_lag_days": 2, "final_lag_days": 120, "lookback_days": 150},
+    # NASA GPM IMERG V07: provisional within ~2 days. The Final Run ("permanent" in Earth Engine)
+    # lags ~13 months: on 2026-11-09 the last permanent day was 2025-09-30. A shorter final lag
+    # would make every run re-download months of provisional days that cannot be upgraded yet.
+    "imerg": {
+        "latency": {"prelim_lag_days": 2, "final_lag_days": 420, "lookback_days": 30},
         "max_workers": 6,
         "options": {"utc_offset_hours": 0},
     },

@@ -7,9 +7,10 @@ Writes, under ``--output-dir``:
 * ``tables/static_<grid>.csv``: summary of the static covariates;
 * ``qc/scale_consistency.csv``: for every coarser grid, the difference and correlation between
   its daily values and the mean of its finest-grid children;
-* ``README.md``: the same in readable form, with the operational availability of today.
+* ``README.md``: the same in readable form, with the coverage report (gaps and days behind
+  real time, ``reports/coverage.json``) and the operational availability of today.
 
-    uv run python examples/cali_operational/summarize_gold.py --data-root data/operational \
+    uv run python examples/cali_operational/summarize_gold.py --data-root data \
         --output-dir outputs/cali_operational
 """
 
@@ -123,7 +124,7 @@ def markdown_table(frame: pd.DataFrame) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data-root", type=Path, default=Path("data/operational"))
+    parser.add_argument("--data-root", type=Path, default=Path("data"))
     parser.add_argument("--output-dir", type=Path, default=Path("outputs/cali_operational"))
     parser.add_argument("--grids", nargs="+", default=["100m", "500m", "1km", "5km"])
     args = parser.parse_args()
@@ -193,16 +194,19 @@ def main() -> None:
     availability = json.loads(availability_files[-1].read_text()) if availability_files else None
 
     lines = [
-        "# Evidencias — corrida operativa de Cali (fuentes diarias seleccionadas, cuatro resoluciones)",
+        "# Evidencias — ejercicio en tiempo real de Cali (fuentes diarias seleccionadas, cuatro resoluciones)",
         "",
-        "Generado por `examples/cali_operational/run_pipeline.sh`. Las fuentes se descargan en su grilla nativa y "
-        "Gold se genera en cada resolución pedida (**100 m, 500 m, 1 km y 5 km**) directamente desde esos datos.",
+        f"Periodo: **{grid_rows[0]['first_day']} → {grid_rows[0]['last_day']}** (de `run.start_date` a hoy). Generado por "
+        "`examples/cali_operational/run_pipeline.sh` (o `.ps1`). Las fuentes se descargan en su grilla nativa y Gold "
+        "se genera en cada resolución pedida (**100 m, 500 m, 1 km y 5 km**) directamente desde esos datos. Cada "
+        "partición diaria y semanal trae **todas** las variables seleccionadas: NA donde la fuente aún no publicó.",
         "",
         "## Tablas Gold por grilla",
         "",
         markdown_table(grids),
         "",
-        "Rutas: `data/operational/gold/<grilla>/parquet/{daily,epiweekly,static}/`.",
+        "Rutas: `data/gold/<grilla>/parquet/{daily,epiweekly,static}/` (y las mismas tablas en PostgreSQL con "
+        "`climate-pipeline db import-lake` o `sync`).",
         "",
         "## Consistencia entre escalas",
         "",
@@ -230,31 +234,28 @@ def main() -> None:
             "animations/semanal_resoluciones.gif",
             "Precipitación IMERG y Tmáx AgERA5 semana a semana, cuatro resoluciones",
         ),
-        ("timeseries/series_diarias.png", "Promedio diario sobre Cali de una variable por familia"),
-        ("maps/variables_100m.png", "Una variable por familia, 100 m"),
-        ("maps/variables_500m.png", "Una variable por familia, 500 m"),
-        ("maps/variables_1km.png", "Una variable por familia, 1 km"),
-        ("maps/variables_5km.png", "Una variable por familia, 5 km"),
+        ("maps/variables_100m.png", "Una variable por familia en la última semana completa, 100 m"),
     ]
-    weekly_maps = sorted((args.output_dir / "maps/semanas").glob("resoluciones_*.png"))
     present = [(path, caption) for path, caption in figures if (args.output_dir / path).exists()]
     if present:
         lines += ["", "## Figuras", "", "Generadas con `examples/cali_operational/make_figures.py`.", ""]
         for path, caption in present:
             lines += [f"**{caption}**", "", f"![{caption}]({path})", ""]
-    if weekly_maps:
+    coverage_path = args.output_dir / "reports" / "coverage.json"
+    if coverage_path.exists():
+        from climate_pipeline.pipeline.coverage import coverage_table
+
+        report = json.loads(coverage_path.read_text())[template]
         lines += [
             "",
-            "## Semana a semana en las cuatro resoluciones",
+            f"## Cobertura del periodo {report['start']} → {report['end']} (grilla {template})",
             "",
-            "Precipitación IMERG, Tmáx AgERA5, nube fría GOES y NDVI Sentinel-2 por semana epidemiológica, en 100 m,"
-            " 500 m, 1 km y 5 km, con la misma escala de color en todas las semanas. La última semana puede salir"
-            " incompleta: IMERG exige los 7 días para la suma y AgERA5 publica con ~8 días de rezago.",
+            "`climate-pipeline coverage`: días con dato (`in_gold`), días sin píxel válido (nubes / sin pasada), "
+            "días que el proveedor no publicó, huecos (`not_built`, `not_requested`) y cuántos días va atrás "
+            "cada fuente respecto de lo que ya podría estar publicado (`behind_days`).",
             "",
+            markdown_table(coverage_table(report)),
         ]
-        for path in weekly_maps:
-            week = path.stem.removeprefix("resoluciones_")
-            lines += [f"**{week}**", "", f"![{week}](maps/semanas/{path.name})", ""]
     if availability:
         table = pd.DataFrame(
             [

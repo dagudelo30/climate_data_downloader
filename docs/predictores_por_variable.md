@@ -5,11 +5,40 @@ columnas de Gold están. Todas las columnas dinámicas son **diarias** y vienen 
 **0.1° (≈11 km) o más finas**, operativas hasta hoy (ver `climate-pipeline availability`). Cuando
 dos fuentes miden lo mismo queda una sola (ver [regla de redundancia](#regla-de-redundancia)).
 
+## Dengue: cómo entran las covariables al modelo
+
+Las covariables de Gold no se usan "tal cual": la literatura de dengue las entra con **rezagos de 1 a 3
+meses** y con **efectos no lineales**. La temperatura tiene un óptimo de transmisión (~26-29 °C), la lluvia
+actúa a la vez por criaderos (exceso) y por almacenamiento de agua (sequía), y la urbanización modula ambos
+efectos. Por eso Gold entrega la semana epidemiológica con `_ndays`: así se construyen rezagos semanales sin
+mezclar semanas incompletas, y la latencia operativa (`climate-pipeline availability`, `coverage`) dice qué
+rezago mínimo es posible en un pronóstico.
+
+| Qué usa la literatura | Por qué | Columnas Gold |
+|---|---|---|
+| Temperatura media, mínima y máxima con rezago de 1-3 meses, curva no lineal | Capacidad vectorial de *Aedes aegypti* con óptimo térmico | `agera5_temp_mean`, `agera5_temp_min`, `agera5_temp_max`, `modis_lst_*` |
+| Precipitación acumulada y extremos (exceso y sequía) con rezago | Criaderos tras lluvias; almacenamiento de agua en sequías | `imerg_precip` (suma semanal, exige 7 días), `smap_sm_surface` |
+| Humedad y déficit de presión de vapor | Supervivencia del mosquito adulto | `agera5_rh_*`, `agera5_vpd_tmax`, `agera5_dewpoint_mean` |
+| Forma urbana y vegetación | Urbanización y hábitat larvario | `urban_*`, `static_*`, `gee_*ndvi`, `gee_*ndwi` |
+| Variabilidad climática regional (ENSO) | Moduladora interanual (se agrega aparte: es un índice, no una grilla) | — |
+
+**Papers:**
+
+- [Eastin et al. (2014), predicción autorregresiva de brotes de dengue en Cali con clima local y regional, *AJTMH*](https://doi.org/10.4269/ajtmh.13-0303)
+- [Delmelle et al. (2016), determinantes socioeconómicos y ambientales del dengue en Cali, *Acta Tropica*](https://doi.org/10.1016/j.actatropica.2016.08.028)
+- [Lowe et al. (2018), impactos no lineales y rezagados del clima sobre el dengue en Barbados (DLNM), *PLOS Medicine*](https://doi.org/10.1371/journal.pmed.1002613)
+- [Lowe et al. (2021), amenazas hidrometeorológicas, urbanización y dengue en Brasil, *Lancet Planetary Health*](https://doi.org/10.1016/S2542-5196(20)30292-8)
+- [Colón-González et al. (2021), pronóstico estacional probabilístico de dengue con superensambles, Vietnam, *PLOS Medicine*](https://doi.org/10.1371/journal.pmed.1003542)
+- [Mordecai et al. (2017), efecto de la temperatura en la transmisión de Zika, dengue y chikungunya, *PLOS NTD*](https://doi.org/10.1371/journal.pntd.0005568)
+- [Liu-Helmersson et al. (2014), capacidad vectorial de *Aedes aegypti* según la temperatura, *PLoS ONE*](https://doi.org/10.1371/journal.pone.0089783)
+- [Messina et al. (2019), distribución global actual y futura del dengue, *Nature Microbiology*](https://doi.org/10.1038/s41564-019-0476-8)
+
+
 ## Precipitación
 
 | Predictor en la literatura | Por qué | Columnas Gold |
 |---|---|---|
-| Precipitación satelital de referencia | Base de todos los esquemas de downscaling y fusión con pluviómetros | `chirps_precip` (5.5 km) |
+| Precipitación satelital de referencia | Base de todos los esquemas de downscaling y fusión con pluviómetros | `imerg_precip` (0.1°, ~2 días de rezago); `chirps_precip` (5.5 km, ~8 días) se puede pedir con `sources.chirps` |
 | Temperatura de brillo IR y duración de nube fría | Topes fríos ⇔ convección profunda; es el principio de CHIRPS/TAMSAT y PERSIANN-CCS | `goes_bt_c13`, `goes_bt_c13_min`, `goes_cold_cloud_frac_235`, `goes_cold_cloud_frac_220` |
 | Canales de vapor de agua y diferencias de canales (ABI 8, 10, 11, 14, 15) | Mejores predictores de lluvia convectiva con ML en GOES-16 | `goes_bt_c08`, `goes_bt_c09`, `goes_bt_c10`, `goes_bt_c11`, `goes_bt_c14`, `goes_bt_c15`, `goes_btd_c08_c13`, `goes_btd_c13_c15`, `goes_btd_c11_c14` |
 | Agua precipitable | Humedad disponible para precipitar | `modis_column_wv` |
@@ -32,6 +61,7 @@ dos fuentes miden lo mismo queda una sola (ver [regla de redundancia](#regla-de-
 - [Texturas y diferencias de brillo como predictores de precipitación (NOAA)](https://repository.library.noaa.gov/view/noaa/45096/noaa_45096_DS1.pdf)
 - [Canal de vapor de agua de 6.2 µm con IR de 11.2 µm para clasificar precipitación](https://essopenarchive.org/doi/full/10.1002/essoar.10505957.1)
 - [U-Net con GOES-16, radar y pluviómetros en los Andes colombianos, *Ingeniería y Competitividad*](https://revistaingenieria.univalle.edu.co/index.php/ingenieria_y_competitividad/article/download/15228/19304/77721)
+- [Baez-Villanueva et al. (2020), RF-MEP: Random Forest para fusionar productos de precipitación con pluviómetros, *Remote Sensing of Environment*](https://doi.org/10.1016/j.rse.2019.111606)
 - [RF-MEP: fusión de CHIRPS, ERA5-Land e IMERG con pluviómetros, *Remote Sensing* (2023)](https://doi.org/10.3390/rs15174230)
 - [Fusión espacial con RF de IMERG, GSMaP, CHIRPS y PERSIANN con pluviómetros](https://aminer.org/pub/65e6dcdb13fb2c6cf63b5462/downscaling-and-merging-multiple-satellite-precipitation-products-and-gauge-observations-using-random)
 
@@ -50,6 +80,7 @@ dos fuentes miden lo mismo queda una sola (ver [regla de redundancia](#regla-de-
 **Papers:**
 
 - [Yoo et al. (2018), Tmáx y Tmín urbanas con LST de MODIS y RF, *ISPRS J. Photogramm.*](https://scholarworks.unist.ac.kr/handle/201301/23828)
+- [Hengl et al. (2012), predicción espacio-temporal de temperatura diaria con series de LST de MODIS, *Theoretical and Applied Climatology*](https://doi.org/10.1007/s00704-011-0464-2)
 - [Tmáx y Tmín con LST de Aqua y Terra, NDVI y radiación (Argentina)](https://revistas.unc.edu.ar/index.php/agris/article/download/33225/41049/153605)
 - [Uscamayta-Ferrano et al. (2025), downscaling de CHIRTS con LST, NDVI y terreno, *Atmosphere*](https://www.mdpi.com/2073-4433/16/10/1188)
 - [Crosson et al. (2020), Tmáx de NLDAS-2 con LST de MODIS, *PLOS ONE*](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6964900/)
@@ -104,6 +135,15 @@ dos fuentes miden lo mismo queda una sola (ver [regla de redundancia](#regla-de-
 - [Chen, He y Liang (2022), radiación neta diaria desde GOES-16 ABI con RF, *IEEE TGRS*](https://vufind.lboro.ac.uk/PrimoRecord/cdi_proquest_journals_2637441323)
 - [Radiación solar con GOES-R y XGBoost (U. Delaware, 2024)](https://udspace.udel.edu/handle/19716/35116)
 - [CHELSA v2.0: HR por barlovento/sotavento y radiación corregida por terreno](https://www.chelsa-climate.org/models/chelsa_v2.0)
+
+
+## Referencias de las fuentes
+
+- [Muñoz-Sabater et al. (2021), ERA5-Land, *Earth System Science Data*](https://doi.org/10.5194/essd-13-4349-2021)
+- [Funk et al. (2015), CHIRPS, *Scientific Data*](https://doi.org/10.1038/sdata.2015.66)
+- [Reichle et al. (2019), SMAP Level-4 versión 4, *JAMES*](https://doi.org/10.1029/2019MS001729)
+- [Schmit et al. (2017), el ABI de GOES-R, *BAMS*](https://doi.org/10.1175/BAMS-D-15-00230.1)
+- [Brown et al. (2022), Dynamic World, *Scientific Data*](https://doi.org/10.1038/s41597-022-01307-4)
 
 
 ## Regla de redundancia

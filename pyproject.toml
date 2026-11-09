@@ -17,6 +17,7 @@ dependencies = [
     "netcdf4==1.7.5.1.post1",
     "numpy==2.5.4",
     "pandas==3.1.0",
+    "psycopg[binary]==3.3.8",
     "pyarrow==26.0.0",
     "pydantic==2.14.1",
     "pydantic-settings==2.16.1",
@@ -72,7 +73,10 @@ quote-style = "double"
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra --strict-markers -m 'not network'"
-markers = ["network: hits real public endpoints (run with: uv run pytest -m network)"]
+markers = [
+    "network: hits real public endpoints (run with: uv run pytest -m network)",
+    "postgres: needs TEST_DATABASE_URL (skipped otherwise; CI runs them against a PostGIS service)",
+]
 filterwarnings = [
     "ignore::DeprecationWarning:pyogrio.*",
     "ignore::FutureWarning:rioxarray.*",

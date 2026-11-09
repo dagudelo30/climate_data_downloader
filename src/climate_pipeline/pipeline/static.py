@@ -226,6 +226,8 @@ def build_static_covariates(
     grids = {}
     for name in names:
         layout = lake.gold_layout(name)
+        if not layout.grid_path.exists() and OutputFormat(output_format) is OutputFormat.POSTGRES:
+            open_gold_store(layout, output_format, settings).close()  # grid.json from the database
         if not layout.grid_path.exists():
             raise DataNotAvailableError(f"gold/{name} has no grid.json yet: build Gold first")
         grids[name] = GridSpec.load(layout.grid_path)
@@ -275,8 +277,11 @@ def build_static_covariates(
     frames = {}
     for name in ordered:
         frame = _static_frame(grids[name], aoi, per_grid[name])
-        store = open_gold_store(lake.gold_layout(name), output_format)
-        frame = _merge_existing(store, frame)
-        store.write_static(frame)
+        store = open_gold_store(lake.gold_layout(name), output_format, settings)
+        try:
+            frame = _merge_existing(store, frame)
+            store.write_static(frame)
+        finally:
+            store.close()
         frames[name] = frame
     return frames

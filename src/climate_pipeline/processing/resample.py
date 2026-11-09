@@ -1,10 +1,17 @@
-"""Resampling of Silver arrays onto a Gold target grid."""
+"""Resampling of Silver arrays onto a Gold target grid.
+
+``rasterio.warp.reproject`` runs directly on the numpy arrays (the same GDAL warp that
+``rio.reproject`` wraps): building xarray coordinates for every call cost ~4x the warp
+itself, and a Gold day resamples ~80 arrays per grid.
+"""
 
 from __future__ import annotations
 
 import numpy as np
 import xarray as xr
+from affine import Affine
 from rasterio.enums import Resampling
+from rasterio.warp import reproject
 
 from climate_pipeline.domain.grid import GridSpec
 from climate_pipeline.domain.variables import ResamplingMethod
@@ -19,16 +26,22 @@ RASTERIO_RESAMPLING: dict[ResamplingMethod, Resampling] = {
 }
 
 
-def _reproject(source: xr.DataArray, grid: GridSpec, method: ResamplingMethod) -> xr.DataArray:
-    result = source.rio.reproject(
+def _warp(
+    data: np.ndarray, transform: Affine, crs: object, grid: GridSpec, method: ResamplingMethod
+) -> np.ndarray:
+    destination = np.full(grid.shape, np.nan, dtype="float32")
+    reproject(
+        source=data,
+        destination=destination,
+        src_transform=transform,
+        src_crs=crs,
+        src_nodata=np.nan,
+        dst_transform=grid.affine,
         dst_crs=grid.crs,
-        shape=grid.shape,
-        transform=grid.affine,
+        dst_nodata=np.nan,
         resampling=RASTERIO_RESAMPLING[method],
-        nodata=np.nan,
     )
-    # Pin coordinates to the exact grid definition to avoid float drift between sources.
-    return result.assign_coords(x=grid.x_coords(), y=grid.y_coords())
+    return destination
 
 
 def resample_to_grid(
@@ -42,15 +55,18 @@ def resample_to_grid(
     average of the valid source cells they overlap, which keeps the all_touched promise:
     every Gold cell touching the AOI gets a value whenever the source covers it.
     """
-    if values.rio.crs is None:
+    crs = values.rio.crs
+    if crs is None:
         raise ValueError(f"{values.name}: cannot resample an array without CRS")
-    source = values.astype("float32")
-    source = source.rio.write_transform(grid_transform(source))
-    source = source.rio.write_nodata(np.nan, encoded=False)
-    result = _reproject(source, grid, method)
+    data = np.ascontiguousarray(values.squeeze(drop=True).values, dtype="float32")
+    if data.ndim != 2:
+        raise ValueError(f"{values.name}: expected a 2-D (y, x) array, got shape {data.shape}")
+    transform = grid_transform(values)
+    result = _warp(data, transform, crs, grid, method)
     if edge_fallback and method is ResamplingMethod.BILINEAR:
-        missing = np.isnan(result.values)
+        missing = np.isnan(result)
         if missing.any():
-            fallback = _reproject(source, grid, ResamplingMethod.AVERAGE)
-            result = result.copy(data=np.where(missing, fallback.values, result.values))
-    return result.rename(values.name)
+            fallback = _warp(data, transform, crs, grid, ResamplingMethod.AVERAGE)
+            result = np.where(missing, fallback, result)
+    # Coordinates pinned to the exact grid definition (no float drift between sources).
+    return grid.template(result, name=str(values.name or "value"))

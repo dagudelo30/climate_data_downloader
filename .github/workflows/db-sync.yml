@@ -1,0 +1,118 @@
+# Scheduled, database-driven ingestion: keeps PostgreSQL complete and current from
+# run.start_date (examples/cali_operational/pipeline.yaml) up to TODAY.
+#
+# Each run asks the database (table ingest_manifest) which (variable, day) pairs are new,
+# missing or still preliminary, given each source's publication latency; downloads only those
+# on the ephemeral runner (Bronze → Silver), upserts Gold column by column on every grid
+# (100 m, 500 m, 1 km, 5 km), rebuilds the epi weeks it touched, adds the static covariates
+# of new grids and writes the coverage report (gaps and days behind real time) to the summary.
+#
+# Required configuration (Settings → Secrets and variables → Actions):
+#   vars.DB_SYNC_ENABLED          "true" to enable the schedule (otherwise every run is skipped)
+#   vars.GEE_PROJECT              Google Cloud project registered for Earth Engine
+#   secrets.DATABASE_URL          postgresql://user:password@host:5432/db (sslmode=require for clouds)
+#   secrets.CDSAPI_KEY            Copernicus CDS personal access token (AgERA5)
+#   secrets.GEE_SERVICE_ACCOUNT_JSON  service-account key with Earth Engine access
+#     (or vars.GCP_WORKLOAD_IDENTITY + vars.GCP_SERVICE_ACCOUNT for keyless auth)
+name: DB sync
+
+on:
+  schedule:
+    # 07:30 UTC = 02:30 Colombia, after the overnight publication windows of CDS/GEE.
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "YYYY-MM-DD (empty = run.start_date of the config)"
+        required: false
+      end_date:
+        description: "YYYY-MM-DD (empty = today)"
+        required: false
+      sources:
+        description: "Comma-separated sources (empty = run.sources of the config)"
+        required: false
+
+permissions:
+  contents: read
+  id-token: write  # Workload Identity Federation (optional)
+
+concurrency:
+  group: db-sync  # never two runs writing the database at the same time
+  cancel-in-progress: false
+
+env:
+  CONFIG_PATH: examples/cali_operational/pipeline.yaml
+  CLIMATE_DATA_ROOT: ${{ github.workspace }}/lake
+  GEE_PROJECT: ${{ vars.GEE_PROJECT }}
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  CDSAPI_KEY: ${{ secrets.CDSAPI_KEY }}
+  CDSAPI_URL: https://cds.climate.copernicus.eu/api
+  # Dispatch inputs reach the shell as environment variables, never interpolated into scripts.
+  START_DATE: ${{ inputs.start_date }}
+  END_DATE: ${{ inputs.end_date }}
+  SOURCES: ${{ inputs.sources }}
+
+jobs:
+  sync:
+    name: Sync PostgreSQL up to today
+    if: vars.DB_SYNC_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350  # the first run back-fills the whole window
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { version: "0.9.15", enable-cache: true }
+      - run: uv sync --locked --no-dev
+
+      - name: Earth Engine credentials (Workload Identity)
+        if: vars.GCP_WORKLOAD_IDENTITY != ''
+        id: wif
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - name: Earth Engine credentials (service-account key)
+        if: vars.GCP_WORKLOAD_IDENTITY == ''
+        env:
+          KEY: ${{ secrets.GEE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$KEY" > "$RUNNER_TEMP/gee.json"
+          echo "GEE_SERVICE_ACCOUNT_KEY=$RUNNER_TEMP/gee.json" >> "$GITHUB_ENV"
+      - if: vars.GCP_WORKLOAD_IDENTITY != ''
+        run: echo "GEE_SERVICE_ACCOUNT_KEY=${{ steps.wif.outputs.credentials_file_path }}" >> "$GITHUB_ENV"
+
+      - name: Migrate schema
+        run: uv run climate-pipeline db init --config "$CONFIG_PATH"
+
+      - name: What is missing? (plan from the database)
+        run: |
+          ARGS=(--config "$CONFIG_PATH" --output-format postgres --no-incremental --no-retry-old-missing)
+          [ -n "$START_DATE" ] && ARGS+=(--start-date "$START_DATE")
+          [ -n "$END_DATE" ] && ARGS+=(--end-date "$END_DATE")
+          [ -n "$SOURCES" ] && ARGS+=(--sources "$SOURCES")
+          uv run climate-pipeline plan "${ARGS[@]}" | tee plan.json
+          { echo '### Plan (from the database)'; echo '```json'; cat plan.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Sync (fetch gaps → Gold in PostgreSQL → coverage)
+        id: sync
+        run: |
+          ARGS=(--config "$CONFIG_PATH" --report-path reports/sync.json)
+          [ -n "$START_DATE" ] && ARGS+=(--start-date "$START_DATE")
+          [ -n "$END_DATE" ] && ARGS+=(--end-date "$END_DATE")
+          [ -n "$SOURCES" ] && ARGS+=(--sources "$SOURCES")
+          uv run climate-pipeline sync "${ARGS[@]}" | tee sync.txt
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          {
+            echo '### Coverage'; echo '```'; cat sync.txt 2>/dev/null; echo '```'
+            echo '### Database'; echo '```'; uv run climate-pipeline db status || true; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sync-report
+          path: reports/
+          retention-days: 30
