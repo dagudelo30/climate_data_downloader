@@ -39,12 +39,10 @@ NATIVE_RESOLUTION: dict[str, tuple[float, str]] = {
     "agera5": (11_100, "11 km (0.1°)"),
     "era5land": (11_100, "11 km (0.1°)"),
     "modis": (1_000, "1 km (LST, nubosidad, vapor de agua y aerosoles MAIAC)"),
-    "landsat": (30, "30 m (térmico 100 m, entregado a 30 m)"),
     "gee": (100, "100 m Sentinel-2 (desde 20 m); 500 m MODIS"),
     "smap": (9_000, "9 km"),
     "viirs": (460, "~460 m luces nocturnas; 1 km LST"),
     "goes": (2_000, "2 km (ABI IR y vapor de agua; visible 0.5-1 km)"),
-    "sentinel1": (10, "10 m (radar C, entregado a 30 m)"),
 }
 
 
@@ -79,11 +77,6 @@ SOURCE_DOCS: dict[str, list[tuple[str, str]]] = {
         ("Sentinel-2 SR", _GEE_CATALOG + "COPERNICUS_S2_SR_HARMONIZED"),
         ("Cloud Score+", _GEE_CATALOG + "GOOGLE_CLOUD_SCORE_PLUS_V1_S2_HARMONIZED"),
     ],
-    "landsat": [
-        ("Landsat 8 C2 L2", _GEE_CATALOG + "LANDSAT_LC08_C02_T1_L2"),
-        ("Landsat 9 C2 L2", _GEE_CATALOG + "LANDSAT_LC09_C02_T1_L2"),
-    ],
-    "sentinel1": [("Sentinel-1 GRD", _GEE_CATALOG + "COPERNICUS_S1_GRD")],
     "smap": [("SMAP L4 SPL4SMGP", _GEE_CATALOG + "NASA_SMAP_SPL4SMGP_008")],
     "viirs": [("VIIRS VNP46A2", _GEE_CATALOG + "NASA_VIIRS_002_VNP46A2")],
     "chirps": [("CHC CHIRPS v3", "https://www.chc.ucsb.edu/data/chirps3")],

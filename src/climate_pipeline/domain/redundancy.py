@@ -66,7 +66,6 @@ class Decision:
 
 
 _DAILY = "daily"
-_REVISIT = "5-8 day revisit"
 
 #: Ranking: (1) resolution, (2) latency, (3) sense. Notes explain the "sense" tie-breaks.
 QUANTITIES: tuple[Quantity, ...] = (
@@ -184,24 +183,6 @@ QUANTITIES: tuple[Quantity, ...] = (
             Candidate("smap_sm_rootzone", 9_000),
             Candidate("era5land_soil_water_l2", 11_100),
             Candidate("era5land_soil_water_l3", 11_100),
-        ),
-    ),
-    Quantity(
-        "ndvi_revisit",
-        "NDVI de alta resolución",
-        _REVISIT,
-        (
-            Candidate("gee_s2_ndvi", 10),
-            Candidate("landsat_ndvi", 30),
-        ),
-    ),
-    Quantity(
-        "moisture_index_revisit",
-        "Índice de humedad / construido (SWIR–NIR) de alta resolución",
-        _REVISIT,
-        (
-            Candidate("gee_s2_ndwi", 20, 0, "NDBI = −NDWI con las mismas bandas SWIR/NIR"),
-            Candidate("landsat_ndbi", 30),
         ),
     ),
 )

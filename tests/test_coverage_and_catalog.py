@@ -46,7 +46,7 @@ def test_days_are_classified_by_store_and_catalog() -> None:
 
 def test_staleness_uses_the_last_processed_day() -> None:
     states = {D[0]: "in_gold", D[1]: "upstream_missing", D[2]: "not_requested", D[3]: "not_requested"}
-    coverage = summarize_source("landsat", states, expected_until=D[3], max_behind_days=1)
+    coverage = summarize_source("gee", states, expected_until=D[3], max_behind_days=1)
     assert coverage.last_valid_day == D[0] and coverage.last_processed_day == D[1]
     assert coverage.behind_days == 2 and coverage.stale
     assert coverage.gaps == [(D[2], D[3])] and coverage.gap_days == 2
@@ -85,14 +85,14 @@ def test_old_missing_days_are_not_retried_by_sync() -> None:
     latency = LatencyConfig(final_lag_days=7, lookback_days=30)
     today = date(2026, 11, 8)
     old, recent = date(2026, 6, 1), date(2026, 10, 25)
-    status = {("lst", old): ProductStatus.MISSING, ("lst", recent): ProductStatus.MISSING}
+    status = {("s2_ndvi", old): ProductStatus.MISSING, ("s2_ndvi", recent): ProductStatus.MISSING}
     common = {"today": today, "start": old, "end": recent}
-    retry_all = plan_source("landsat", latency, ["lst"], status, **common)
-    assert old in retry_all.requests["lst"] and recent in retry_all.requests["lst"]
+    retry_all = plan_source("gee", latency, ["s2_ndvi"], status, **common)
+    assert old in retry_all.requests["s2_ndvi"] and recent in retry_all.requests["s2_ndvi"]
     bounded = plan_source(
-        "landsat", latency, ["lst"], status, retry_since=today - timedelta(days=30), **common
+        "gee", latency, ["s2_ndvi"], status, retry_since=today - timedelta(days=30), **common
     )
-    assert old not in bounded.requests["lst"] and recent in bounded.requests["lst"]
+    assert old not in bounded.requests["s2_ndvi"] and recent in bounded.requests["s2_ndvi"]
     assert bounded.reasons["missing_given_up"] == 1
 
 
@@ -126,6 +126,6 @@ def test_operational_example_config_is_valid() -> None:
 
     config = load_pipeline_config(Path("examples/cali_operational/pipeline.yaml"))
     run = config.run
-    assert run.start_date == date(2026, 1, 1) and run.end_date is None  # real time: up to today
-    assert set(run.target_grids) == {"100m", "500m", "1km", "5km"}
+    assert run.start_date == date(2015, 1, 1) and run.end_date is None  # real time: up to today
+    assert set(run.target_grids) == {"1km", "2km", "5km"}
     assert run.aoi_path is not None and run.aoi_path.exists()

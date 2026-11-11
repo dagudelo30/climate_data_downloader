@@ -14,8 +14,8 @@ reason              when
 ==================  ===========================================================
 
 With ``retry_since`` (used by ``sync`` over long windows), a day recorded as ``missing``
-before that date is not asked for again (``missing_given_up``): a Landsat day without an
-overpass stays without one, and a daily run over a whole year would otherwise re-query
+before that date is not asked for again (``missing_given_up``): a Sentinel-2 day under
+clouds stays without data, and a daily run over a whole year would otherwise re-query
 hundreds of such days.
 
 Dates newer than ``today - earliest_lag`` are not requested at all (counted as

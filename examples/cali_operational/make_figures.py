@@ -3,7 +3,7 @@
 Writes under ``--output-dir`` (default ``outputs/cali_operational``):
 
 * ``maps/resoluciones_semana.png``     key variables of the latest complete epi week, one column per grid;
-* ``maps/variables_100m.png``           every family of variables of that week on the finest grid;
+* ``maps/variables_1km.png``           every family of variables of that week on the finest grid;
 * ``maps/estaticas_resoluciones.png``  terrain and urban covariates, one column per grid;
 * ``animations/semanal_resoluciones.gif`` the key variables of every complete week of the run
   (colour scales fixed over all weeks), one column per grid.
@@ -36,8 +36,8 @@ from climate_pipeline.domain.grid import GridSpec
 from climate_pipeline.storage.layout import DataLake
 
 AOI_PATH = Path("data/auxiliary/shapefiles/cali/cali.shp")
-GRIDS = ("100m", "500m", "1km", "5km")
-GRID_LABELS = {"100m": "100 m", "500m": "500 m", "1km": "1 km", "5km": "5 km"}
+GRIDS = ("1km", "2km", "5km")
+GRID_LABELS = {"1km": "1 km", "2km": "2 km", "5km": "5 km"}
 INK, MUTED, OUTLINE = "#1c2320", "#5b6761", "#2b2f2d"
 
 plt.rcParams.update(

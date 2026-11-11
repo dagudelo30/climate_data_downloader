@@ -52,7 +52,7 @@ SourcesOption = Annotated[
     typer.Option(
         "--sources",
         help="Sources (repeat or comma-separate): chirps, mswep, agera5, gee, era5land, imerg, gsmap, "
-        "modis, viirs, smap, landsat, goes, sentinel1. Default: run.sources, else every source with "
+        "modis, viirs, smap, goes. Default: run.sources, else every source with "
         "selected columns.",
     ),
 ]

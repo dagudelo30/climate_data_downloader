@@ -1,6 +1,6 @@
 """Daily climate and satellite sources read from Google Earth Engine image collections.
 
-Each source (``era5land``, ``imerg``, ``gsmap``, ``modis``, ``viirs``, ``smap``, ``landsat``)
+Each source (``era5land``, ``imerg``, ``gsmap``, ``modis``, ``viirs``, ``smap``, ``goes``)
 is a list of :class:`GeeDataset`. A dataset declares its collections, its cadence and the
 variables computed from each image. Unit conversion and per-variable quality masks run
 server-side, so Bronze is already in the target units.
@@ -91,7 +91,6 @@ BRIGHTNESS_TEMPERATURE_DIFFERENCE = QualityBounds(-100.0, 100.0)
 REFLECTANCE = QualityBounds(0.0, 1.5)
 WATER_VAPOUR_COLUMN = QualityBounds(0.0, 10.0)
 AEROSOL_OPTICAL_DEPTH = QualityBounds(0.0, 5.0)
-BACKSCATTER_DB = QualityBounds(-50.0, 30.0)
 
 
 @dataclass(frozen=True)
@@ -179,17 +178,6 @@ def kelvin_to_celsius(name: str, scale: float = 1.0) -> Compute:
     return band(name, scale=scale, offset=-273.15)
 
 
-def bits_clear(band_name: str, bits: Sequence[int]) -> Mask:
-    def mask(image: Any) -> Any:
-        result = None
-        for bit in bits:
-            clear = image.select(band_name).bitwiseAnd(1 << bit).eq(0)
-            result = clear if result is None else result.And(clear)
-        return result
-
-    return mask
-
-
 def modis_lst_quality(qc_band: str) -> Mask:
     """MOD11/MYD11 ``QC_Day``/``QC_Night``: keep good quality (bits 0-1 = 0), or "other
     quality" (= 1) with an LST error ≤ 2 K (bits 6-7 ≤ 1)."""
@@ -201,21 +189,6 @@ def modis_lst_quality(qc_band: str) -> Mask:
         return mandatory.eq(0).Or(mandatory.eq(1).And(error.lte(1)))
 
     return mask
-
-
-#: Landsat C2 L2 ``QA_PIXEL``: fill (0), dilated cloud (1), cirrus (2), cloud (3), shadow (4).
-landsat_clear = bits_clear("QA_PIXEL", (0, 1, 2, 3, 4))
-
-
-def landsat_index(first: str, second: str) -> Compute:
-    """(first − second) / (first + second) on Collection-2 surface reflectance."""
-
-    def compute(image: Any) -> Any:
-        a = image.select(first).multiply(0.0000275).add(-0.2)
-        b = image.select(second).multiply(0.0000275).add(-0.2)
-        return a.subtract(b).divide(a.add(b))
-
-    return compute
 
 
 def relative_humidity_from_dewpoint(temperature: str, dewpoint: str) -> Compute:
@@ -357,20 +330,6 @@ def maiac_clear(image: Any) -> Any:
 def viirs_lst_quality(image: Any) -> Any:
     """VNP21 ``QC`` bits 0-1: 0 good, 1 other quality (2 cloud, 3 not produced)."""
     return image.select("QC").bitwiseAnd(0b11).lte(1)
-
-
-def sentinel1_valid(image: Any) -> Any:
-    """Drop near/far-range edges and noise-floor pixels."""
-    angle = image.select("angle")
-    return angle.gt(30.0).And(angle.lt(46.0)).And(image.select("VV").gt(-30.0))
-
-
-def sentinel1_dual_pol(ee: Any, collection: Any) -> Any:
-    return (
-        collection.filter(ee.Filter.eq("instrumentMode", "IW"))
-        .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VV"))
-        .filter(ee.Filter.listContains("transmitterReceiverPolarisation", "VH"))
-    )
 
 
 def _precip(name: str, compute: Compute, description: str) -> DatasetVariable:
@@ -783,47 +742,6 @@ SMAP_L4 = GeeDataset(
     ),
 )
 
-LANDSAT = GeeDataset(
-    key="landsat_c2_l2",
-    collections=("LANDSAT/LC08/C02/T1_L2", "LANDSAT/LC09/C02/T1_L2"),
-    cadence=Cadence.DAILY,
-    grid_band="SR_B4",
-    resolution_label="30 m (L8+L9, ~8-day revisit)",
-    agency="USGS / NASA",
-    variables=(
-        _var(
-            "lst",
-            band("ST_B10", scale=0.00341802, offset=149.0 - 273.15),
-            "degC",
-            SURFACE_TEMPERATURE,
-            "Landsat 8/9 Collection-2 surface temperature (cloud-masked)",
-            mask=landsat_clear,
-            resampling=ResamplingMethod.AVERAGE,
-            min_valid_days=1,
-        ),
-        _var(
-            "ndvi",
-            landsat_index("SR_B5", "SR_B4"),
-            "1",
-            NORMALIZED_INDEX,
-            "Landsat 8/9 NDVI (cloud-masked)",
-            mask=landsat_clear,
-            resampling=ResamplingMethod.AVERAGE,
-            min_valid_days=1,
-        ),
-        _var(
-            "ndbi",
-            landsat_index("SR_B6", "SR_B5"),
-            "1",
-            NORMALIZED_INDEX,
-            "Landsat 8/9 NDBI built-up index (SWIR1 - NIR)/(SWIR1 + NIR), cloud-masked",
-            mask=landsat_clear,
-            resampling=ResamplingMethod.AVERAGE,
-            min_valid_days=1,
-        ),
-    ),
-)
-
 MODIS_MAIAC = GeeDataset(
     key="mcd19a2",
     collections=("MODIS/061/MCD19A2_GRANULES",),
@@ -974,49 +892,6 @@ GOES_EAST = GeeDataset(
     ),
 )
 
-SENTINEL1 = GeeDataset(
-    key="s1_grd",
-    collections=("COPERNICUS/S1_GRD",),
-    cadence=Cadence.DAILY,
-    native_grid=False,
-    scale_m=30.0,
-    prefilter=sentinel1_dual_pol,
-    resolution_label="10 m (IW GRD), delivered at 30 m; ~6-day revisit",
-    agency="ESA Copernicus",
-    variables=(
-        _var(
-            "vv_db",
-            band("VV"),
-            "dB",
-            BACKSCATTER_DB,
-            "Sentinel-1 VV backscatter (soil moisture, open water, built-up)",
-            mask=sentinel1_valid,
-            resampling=ResamplingMethod.AVERAGE,
-            min_valid_days=1,
-        ),
-        _var(
-            "vh_db",
-            band("VH"),
-            "dB",
-            BACKSCATTER_DB,
-            "Sentinel-1 VH backscatter (vegetation volume)",
-            mask=sentinel1_valid,
-            resampling=ResamplingMethod.AVERAGE,
-            min_valid_days=1,
-        ),
-        _var(
-            "vh_vv_db",
-            band_difference("VH", "VV"),
-            "dB",
-            BACKSCATTER_DB,
-            "Sentinel-1 cross-polarisation ratio VH - VV (vegetation vs built-up structure)",
-            mask=sentinel1_valid,
-            resampling=ResamplingMethod.AVERAGE,
-            min_valid_days=1,
-        ),
-    ),
-)
-
 #: source name -> datasets. Gold columns are ``{source}_{variable}``.
 GEE_SOURCES: dict[str, tuple[GeeDataset, ...]] = {
     "era5land": (ERA5_LAND,),
@@ -1025,9 +900,7 @@ GEE_SOURCES: dict[str, tuple[GeeDataset, ...]] = {
     "modis": (MODIS_LST_TERRA, MODIS_LST_AQUA, MODIS_CLOUD, MODIS_MAIAC),
     "viirs": (VIIRS_DAILY, VIIRS_LST_DAY, VIIRS_LST_NIGHT),
     "smap": (SMAP_L4,),
-    "landsat": (LANDSAT,),
     "goes": (GOES_EAST,),
-    "sentinel1": (SENTINEL1,),
 }
 
 

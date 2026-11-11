@@ -126,7 +126,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path, default=Path("data"))
     parser.add_argument("--output-dir", type=Path, default=Path("outputs/cali_operational"))
-    parser.add_argument("--grids", nargs="+", default=["100m", "500m", "1km", "5km"])
+    parser.add_argument("--grids", nargs="+", default=["1km", "2km", "5km"])
     args = parser.parse_args()
 
     lake = DataLake(args.data_root)
@@ -194,11 +194,11 @@ def main() -> None:
     availability = json.loads(availability_files[-1].read_text()) if availability_files else None
 
     lines = [
-        "# Evidencias — ejercicio en tiempo real de Cali (fuentes diarias seleccionadas, cuatro resoluciones)",
+        "# Evidencias — ejercicio en tiempo real de Cali (fuentes diarias seleccionadas, tres resoluciones)",
         "",
         f"Periodo: **{grid_rows[0]['first_day']} → {grid_rows[0]['last_day']}** (de `run.start_date` a hoy). Generado por "
         "`examples/cali_operational/run_pipeline.sh` (o `.ps1`). Las fuentes se descargan en su grilla nativa y Gold "
-        "se genera en cada resolución pedida (**100 m, 500 m, 1 km y 5 km**) directamente desde esos datos. Cada "
+        "se genera en cada resolución pedida (**1 km, 2 km y 5 km**) directamente desde esos datos. Cada "
         "partición diaria y semanal trae **todas** las variables seleccionadas: NA donde la fuente aún no publicó.",
         "",
         "## Tablas Gold por grilla",
@@ -234,7 +234,7 @@ def main() -> None:
             "animations/semanal_resoluciones.gif",
             "Precipitación IMERG y Tmáx AgERA5 semana a semana, cuatro resoluciones",
         ),
-        ("maps/variables_100m.png", "Una variable por familia en la última semana completa, 100 m"),
+        ("maps/variables_1km.png", "Una variable por familia en la última semana completa, 1 km"),
     ]
     present = [(path, caption) for path, caption in figures if (args.output_dir / path).exists()]
     if present:

@@ -60,7 +60,7 @@ footer { color:var(--muted); font-size:12.5px; border-top:1px solid var(--rule);
   <div class="eyebrow">Dengue.IA Cali · climate-pipeline · Gold</div>
   <h1>Modelo relacional</h1>
   <p class="lede">En PostgreSQL (esquema <code>climate</code>): <code>grid</code> y <code>cell</code> (con el polígono de
-  cada celda si hay PostGIS), las tres tablas Gold particionadas por grilla (100 m, 500 m, 1 km, 5 km o las que se
+  cada celda si hay PostGIS), las tres tablas Gold particionadas por grilla (1 km, 2 km y 5 km en el ejercicio, o las que se
   pidan), el diccionario <code>variable</code> y el catálogo <code>ingest_manifest</code>. En Parquet/DuckDB son las mismas
   tablas por grilla, con latitud y longitud en cada fila. Las grillas están alineadas a múltiplos de su resolución, así
   que las escalas se cruzan por aritmética de índices, sin tablas de cruce.</p>
@@ -74,7 +74,7 @@ erDiagram
   VARIABLE ||--o{ GOLD_DAILY : &quot;una columna por variable&quot;
   INGEST_MANIFEST }o--o{ GOLD_DAILY : &quot;date (rebuild si Silver cambió)&quot;
   GRID {
-    text grid_name PK &quot;100m, 500m, 1km, 5km&quot;
+    text grid_name PK &quot;1km, 2km, 5km&quot;
     text crs &quot;EPSG:9377&quot;
     float8_array transform &quot;a,b,c,d,e,f&quot;
     int width
@@ -169,9 +169,10 @@ erDiagram
 </section>
 <section>
   <h2>Cómo se cruzan las escalas</h2>
-  <p>Con una grilla fina de ancho <code>W₁₀₀</code> (por ejemplo 100 m) y una gruesa de factor <code>k</code> (5 para 500 m,
-  10 para 1 km, 50 para 5 km), desplazamiento <code>(r₀, c₀)</code> entre sus esquinas y ancho <code>W_k</code>:</p>
-  <div class="diagram"><code>fila = cell_id_100 // W₁₀₀ ; col = cell_id_100 % W₁₀₀<br/>
+  <p>Con una grilla fina de ancho <code>W₁</code> (en el ejercicio, 1 km) y una gruesa de factor <code>k</code> (2 para
+  2 km, 5 para 5 km), desplazamiento <code>(r₀, c₀)</code> entre sus esquinas y ancho <code>W_k</code>. La de 2 km no
+  cabe un número entero de veces en la de 5 km: para cruzarlas se pasa por 1 km.</p>
+  <div class="diagram"><code>fila = cell_id_1 // W₁ ; col = cell_id_1 % W₁<br/>
   cell_id_k = ((fila − r₀) // k) × W_k + (col − c₀) // k</code></div>
   <p>La función <code>parent_cell_ids(fine, coarse, cell_ids)</code> de <code>climate_pipeline.domain.grid</code> lo
   calcula. Cada grilla se calcula desde los datos nativos a su propia resolución; con <code>--nested</code>, además, el

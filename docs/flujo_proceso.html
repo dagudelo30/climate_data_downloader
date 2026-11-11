@@ -60,8 +60,8 @@ footer { color:var(--muted); font-size:12.5px; border-top:1px solid var(--rule);
   <div class="eyebrow">Dengue.IA Cali · climate-pipeline</div>
   <h1>Flujo del proceso</h1>
   <p class="lede">Del proveedor a la tabla del modelo: cada fuente diaria se descarga solo cuando ya debe existir, tal
-  como viene (grilla y resolución nativas), y Gold se genera a las resoluciones que se pidan (por ejemplo 100 m, 500 m,
-  1 km y 5 km), cada una calculada directamente desde los datos nativos. Todo es idempotente: volver a correr solo pide
+  como viene (grilla y resolución nativas), y Gold se genera a las resoluciones que se pidan (el ejercicio usa
+  1 km, 2 km y 5 km), cada una calculada directamente desde los datos nativos. Todo es idempotente: volver a correr solo pide
   lo que falta o lo preliminar. En operación, un cron diario (<code>.github/workflows/db-sync.yml</code>) corre
   <code>sync</code>: le pregunta a PostgreSQL qué falta entre <code>run.start_date</code> y hoy, baja solo eso y deja la
   base al día.</p>
@@ -70,7 +70,7 @@ footer { color:var(--muted); font-size:12.5px; border-top:1px solid var(--rule);
 flowchart LR
   subgraph P[Proveedores]
     CDS[Copernicus CDS&lt;br/&gt;AgERA5]
-    GEE[Google Earth Engine&lt;br/&gt;IMERG, ERA5-Land, GOES, MODIS,&lt;br/&gt;Sentinel-1/2, Landsat, SMAP, VIIRS]
+    GEE[Google Earth Engine&lt;br/&gt;IMERG, ERA5-Land, GOES, MODIS,&lt;br/&gt;Sentinel-2, SMAP, VIIRS]
     CHC[CHC / GloH2O&lt;br/&gt;CHIRPS, MSWEP opcionales]
     OSM[OpenStreetMap&lt;br/&gt;Overpass]
   end
@@ -81,7 +81,7 @@ flowchart LR
   T{{Grillas pedidas&lt;br/&gt;run.target_grids}}
   subgraph PG[PostgreSQL / Parquet]
     CAT[(ingest_manifest&lt;br/&gt;catálogo)]
-    G[(gold_daily · gold_epiweekly&lt;br/&gt;100 m · 500 m · 1 km · 5 km)]
+    G[(gold_daily · gold_epiweekly&lt;br/&gt;1 km · 2 km · 5 km)]
     ST[(static_covariates&lt;br/&gt;terreno + urbano + OSM)]
   end
   COV[coverage&lt;br/&gt;huecos y días de atraso]

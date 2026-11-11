@@ -22,7 +22,7 @@ from climate_pipeline.pipeline.orchestrator import build_variable_catalog
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "examples/cali_operational/pipeline.yaml"
-SOURCES = ["imerg", "agera5", "era5land", "goes", "modis", "gee", "landsat", "sentinel1", "smap", "viirs"]
+SOURCES = ["imerg", "agera5", "era5land", "goes", "modis", "gee", "smap", "viirs"]
 
 # Objetivos: P precipitación, T temperatura (media/máx/mín), H humedad relativa, V viento, R radiación solar.
 SOURCE_INFO = {
@@ -32,8 +32,6 @@ SOURCE_INFO = {
     "goes": ("GOES-East ABI (GOES-16 → GOES-19)", "NOAA", "2 km, 10 min", "diario (144 escaneos)"),
     "modis": ("MODIS Terra/Aqua (MOD11A1, MYD11A1, MOD09GA, MCD19A2)", "NASA", "1 km", "diario (2 pasadas)"),
     "gee": ("MODIS MOD09GA/MYD09GA y Sentinel-2 L2A + Cloud Score+", "NASA / ESA", "", "diario / ~5 días"),
-    "landsat": ("Landsat 8/9 Collection 2 L2", "USGS / NASA", "30 m (térmico 100 m)", "~8 días"),
-    "sentinel1": ("Sentinel-1 GRD IW", "ESA Copernicus", "10 m (entregado a 30 m)", "~6 días"),
     "smap": ("SMAP L4 (SPL4SMGP)", "NASA", "9 km, 3 h", "diario"),
     "viirs": ("VIIRS Black Marble VNP46A2", "NASA", "15″ (~460 m)", "diario"),
 }
@@ -135,13 +133,6 @@ PURPOSE: dict[str, tuple[str, str]] = {
     "gee_s2_mndwi": ("MNDWI de Sentinel-2: cuerpos de agua y encharcamientos.", "P H"),
     "gee_s2_ndre": ("NDRE (borde rojo): estrés de la vegetación.", "H T"),
     "gee_s2_bsi": ("Índice de suelo desnudo.", "T"),
-    "landsat_lst": ("Temperatura de superficie a 30 m (~10:15): islas de calor urbanas.", "T"),
-    "sentinel1_vv_db": (
-        "Radar VV: humedad del suelo, agua abierta y construcciones. Ve a través de nubes.",
-        "P H",
-    ),
-    "sentinel1_vh_db": ("Radar VH: volumen de vegetación.", "H"),
-    "sentinel1_vh_vv_db": ("Razón VH−VV: vegetación frente a estructura urbana.", "T"),
     "smap_sm_surface": ("Humedad del suelo 0-5 cm: memoria de la lluvia reciente.", "P H T"),
     "smap_sm_rootzone": ("Humedad del suelo 0-100 cm.", "P H"),
     "viirs_ntl": ("Luces nocturnas diarias: intensidad urbana.", "T"),
@@ -332,7 +323,7 @@ def latest_availability() -> dict:
     return json.loads(files[-1].read_text()) if files else {"today": "", "sources": []}
 
 
-def last_valid_days(grid: str = "100m") -> dict[str, str]:
+def last_valid_days(grid: str = "1km") -> dict[str, str]:
     inventory = ROOT / "outputs/cali_operational/tables/column_inventory.csv"
     if not inventory.exists():
         return {}
@@ -436,7 +427,7 @@ def dictionary_page() -> str:
   <div class="eyebrow">Dengue.IA Cali · climate-pipeline · Gold</div>
   <h1>Diccionario de variables</h1>
   <p class="lede">Solo las variables seleccionadas: {len(kept)} columnas diarias y {len(STATIC)} covariables estáticas, en cada
-  grilla (100 m, 1 km y 5 km). Para cada una: qué explica, fuente, resolución original, latencia ({measured}) y para qué
+  grilla (1 km, 2 km y 5 km). Para cada una: qué explica, fuente, resolución original, latencia ({measured}) y para qué
   variable objetivo sirve (<span class="tag">P</span> precipitación, <span class="tag">T</span> temperatura,
   <span class="tag">H</span> humedad relativa, <span class="tag">V</span> viento, <span class="tag">R</span> radiación solar).
   Ninguna fuente es más gruesa que 0.1°, y donde dos fuentes medían lo mismo quedó la más reciente.</p>
@@ -462,8 +453,8 @@ def dictionary_page() -> str:
 </section>
 <section>
   <h2>Covariables estáticas</h2>
-  <p class="muted">Tabla <code>static_covariates</code> (una fila por celda), calculada en 100 m y promediada por bloques a
-  1 km y 5 km: <code>climate-pipeline build-static --layers terrain,urban,osm</code>.</p>
+  <p class="muted">Tabla <code>static_covariates</code> (una fila por celda), calculada en cada grilla
+  (1 km, 2 km y 5 km) directamente desde las capas nativas: <code>climate-pipeline build-static --layers terrain,urban,osm</code>.</p>
   <div class="scroll"><table>
     <thead><tr><th>Columna</th><th>Qué explica</th><th>Sirve para</th><th>Fuente</th><th>Resolución original</th>
     <th>Periodo</th></tr></thead><tbody>{static_rows}</tbody></table></div>
@@ -479,7 +470,7 @@ FLOW = """
 flowchart LR
   subgraph P[Proveedores]
     CDS[Copernicus CDS<br/>AgERA5]
-    GEE[Google Earth Engine<br/>IMERG, ERA5-Land, GOES, MODIS,<br/>Sentinel-1/2, Landsat, SMAP, VIIRS]
+    GEE[Google Earth Engine<br/>IMERG, ERA5-Land, GOES, MODIS,<br/>Sentinel-2, SMAP, VIIRS]
     CHC[CHC / GloH2O<br/>CHIRPS, MSWEP opcionales]
     OSM[OpenStreetMap<br/>Overpass]
   end
@@ -490,7 +481,7 @@ flowchart LR
   T{{Grillas pedidas<br/>run.target_grids}}
   subgraph PG[PostgreSQL / Parquet]
     CAT[(ingest_manifest<br/>catálogo)]
-    G[(gold_daily · gold_epiweekly<br/>100 m · 500 m · 1 km · 5 km)]
+    G[(gold_daily · gold_epiweekly<br/>1 km · 2 km · 5 km)]
     ST[(static_covariates<br/>terreno + urbano + OSM)]
   end
   COV[coverage<br/>huecos y días de atraso]
@@ -515,7 +506,7 @@ erDiagram
   VARIABLE ||--o{ GOLD_DAILY : "una columna por variable"
   INGEST_MANIFEST }o--o{ GOLD_DAILY : "date (rebuild si Silver cambió)"
   GRID {
-    text grid_name PK "100m, 500m, 1km, 5km"
+    text grid_name PK "1km, 2km, 5km"
     text crs "EPSG:9377"
     float8_array transform "a,b,c,d,e,f"
     int width
@@ -583,8 +574,8 @@ def flow_page() -> str:
   <div class="eyebrow">Dengue.IA Cali · climate-pipeline</div>
   <h1>Flujo del proceso</h1>
   <p class="lede">Del proveedor a la tabla del modelo: cada fuente diaria se descarga solo cuando ya debe existir, tal
-  como viene (grilla y resolución nativas), y Gold se genera a las resoluciones que se pidan (por ejemplo 100 m, 500 m,
-  1 km y 5 km), cada una calculada directamente desde los datos nativos. Todo es idempotente: volver a correr solo pide
+  como viene (grilla y resolución nativas), y Gold se genera a las resoluciones que se pidan (el ejercicio usa
+  1 km, 2 km y 5 km), cada una calculada directamente desde los datos nativos. Todo es idempotente: volver a correr solo pide
   lo que falta o lo preliminar. En operación, un cron diario (<code>.github/workflows/db-sync.yml</code>) corre
   <code>sync</code>: le pregunta a PostgreSQL qué falta entre <code>run.start_date</code> y hoy, baja solo eso y deja la
   base al día.</p>
@@ -653,7 +644,7 @@ def relational_page() -> str:
   <div class="eyebrow">Dengue.IA Cali · climate-pipeline · Gold</div>
   <h1>Modelo relacional</h1>
   <p class="lede">En PostgreSQL (esquema <code>climate</code>): <code>grid</code> y <code>cell</code> (con el polígono de
-  cada celda si hay PostGIS), las tres tablas Gold particionadas por grilla (100 m, 500 m, 1 km, 5 km o las que se
+  cada celda si hay PostGIS), las tres tablas Gold particionadas por grilla (1 km, 2 km y 5 km en el ejercicio, o las que se
   pidan), el diccionario <code>variable</code> y el catálogo <code>ingest_manifest</code>. En Parquet/DuckDB son las mismas
   tablas por grilla, con latitud y longitud en cada fila. Las grillas están alineadas a múltiplos de su resolución, así
   que las escalas se cruzan por aritmética de índices, sin tablas de cruce.</p>
@@ -694,9 +685,10 @@ def relational_page() -> str:
 </section>
 <section>
   <h2>Cómo se cruzan las escalas</h2>
-  <p>Con una grilla fina de ancho <code>W₁₀₀</code> (por ejemplo 100 m) y una gruesa de factor <code>k</code> (5 para 500 m,
-  10 para 1 km, 50 para 5 km), desplazamiento <code>(r₀, c₀)</code> entre sus esquinas y ancho <code>W_k</code>:</p>
-  <div class="diagram"><code>fila = cell_id_100 // W₁₀₀ ; col = cell_id_100 % W₁₀₀<br/>
+  <p>Con una grilla fina de ancho <code>W₁</code> (en el ejercicio, 1 km) y una gruesa de factor <code>k</code> (2 para
+  2 km, 5 para 5 km), desplazamiento <code>(r₀, c₀)</code> entre sus esquinas y ancho <code>W_k</code>. La de 2 km no
+  cabe un número entero de veces en la de 5 km: para cruzarlas se pasa por 1 km.</p>
+  <div class="diagram"><code>fila = cell_id_1 // W₁ ; col = cell_id_1 % W₁<br/>
   cell_id_k = ((fila − r₀) // k) × W_k + (col − c₀) // k</code></div>
   <p>La función <code>parent_cell_ids(fine, coarse, cell_ids)</code> de <code>climate_pipeline.domain.grid</code> lo
   calcula. Cada grilla se calcula desde los datos nativos a su propia resolución; con <code>--nested</code>, además, el
@@ -720,17 +712,7 @@ def relational_page() -> str:
 
 #: (fuente, producto, organismo, resolución espacial nativa en m, etiqueta, resolución temporal nativa, uso)
 RESOLUTION_ROWS = [
-    ("sentinel1", "Sentinel-1 GRD IW", "ESA", 10, "10 m", "~6 días (revisita S1C+S1D)", "diaria"),
     ("gee", "Sentinel-2 L2A (índices s2_*)", "ESA", 10, "10-20 m", "~5 días (revisita)", "diaria"),
-    (
-        "landsat",
-        "Landsat 8/9 C2 L2",
-        "USGS / NASA",
-        30,
-        "30 m (térmico 100 m)",
-        "~8 días (revisita)",
-        "diaria",
-    ),
     ("viirs", "VIIRS Black Marble VNP46A2", "NASA", 460, "~460 m (15″)", "diaria", "diaria"),
     ("gee", "MODIS MOD09GA/MYD09GA (índices)", "NASA", 500, "500 m", "diaria (2 pasadas)", "diaria"),
     ("modis", "MODIS LST, nubes y MAIAC", "NASA", 1000, "1 km", "diaria (2 pasadas)", "diaria"),
@@ -773,9 +755,10 @@ def resolution_page() -> str:
   <div class="eyebrow">Dengue.IA Cali · climate-pipeline</div>
   <h1>Fuentes y resolución</h1>
   <p class="lede">Resolución <strong>original</strong> de cada fuente seleccionada, de la más fina a la más gruesa. La
-  más fina es de 10 m (Sentinel-1 y Sentinel-2) y la más gruesa de 0.1° (~11 km: IMERG, AgERA5, ERA5-Land); en tiempo,
-  la más fina es de 10 min (GOES) y la más gruesa la revisita de ~8 días de Landsat. Todo se descarga así y Gold se
-  genera a la resolución que se pida (por ejemplo 100 m, 500 m, 1 km y 5 km); en Gold todo es diario.</p>
+  más fina es de 10 m (Sentinel-2) y la más gruesa de 0.1° (~11 km: IMERG, AgERA5, ERA5-Land); en tiempo,
+  la más fina es de 10 min (GOES) y la más gruesa la revisita de ~5 días de Sentinel-2. Todo se descarga así y Gold se
+  genera a la resolución que se pida (el ejercicio usa 1 km, 2 km y 5 km); en Gold todo es diario. Landsat y
+  Sentinel-1 se retiraron como fuentes diarias por tener muy pocos días con dato sobre Cali.</p>
 </header>
 <section>
   <h2>Variables diarias</h2>

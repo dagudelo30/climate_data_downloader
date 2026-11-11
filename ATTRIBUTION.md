@@ -16,9 +16,9 @@ salvo las columnas `urban_osm_*`, que se derivan de OpenStreetMap (ver abajo).
 Copiar en la publicación o en la página de descargas las que correspondan a las columnas usadas:
 
 * **Copernicus Climate Change Service (AgERA5, ERA5-Land):** "Contains modified Copernicus Climate Change
-  Service information [2026]. Neither the European Commission nor ECMWF is responsible for any use that
+  Service information [2015-2026]. Neither the European Commission nor ECMWF is responsible for any use that
   may be made of the Copernicus information or data it contains."
-* **Copernicus Sentinel (Sentinel-1, Sentinel-2):** "Contains modified Copernicus Sentinel data [2026]."
+* **Copernicus Sentinel (Sentinel-2):** "Contains modified Copernicus Sentinel data [2015-2026]."
 * **Copernicus DEM:** "Produced using Copernicus WorldDEM-90 © DLR e.V. 2010-2014 and © Airbus Defence and
   Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved."
 * **OpenStreetMap (`urban_osm_*`):** "© OpenStreetMap contributors", datos bajo
@@ -43,8 +43,7 @@ Copiar en la publicación o en la página de descargas las que correspondan a la
 | `modis_cloud_frac`, `gee_*` (MODIS) | MOD09GA / MYD09GA v061 | NASA LP DAAC | abierto, sin restricciones | [10.5067/MODIS/MOD09GA.061](https://doi.org/10.5067/MODIS/MOD09GA.061), [10.5067/MODIS/MYD09GA.061](https://doi.org/10.5067/MODIS/MYD09GA.061) |
 | `modis_aod_055`, `modis_column_wv` | MCD19A2 v061 (MAIAC) | NASA LP DAAC | abierto, sin restricciones | [10.5067/MODIS/MCD19A2.061](https://doi.org/10.5067/MODIS/MCD19A2.061) |
 | `gee_s2_*`, `urban_s2_*` | Sentinel-2 L2A harmonized + Cloud Score+ | ESA Copernicus; Google | [términos de datos Sentinel](https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice) | [catálogo de Earth Engine](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED) |
-| `sentinel1_*` | Sentinel-1 GRD | ESA Copernicus | términos de datos Sentinel | [catálogo de Earth Engine](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD) |
-| `landsat_lst`, `urban_landsat_*` | Landsat 8-9 OLI/TIRS Collection 2 Level-2 | USGS | dominio público (cortesía del USGS) | [10.5066/P9OGBGM6](https://doi.org/10.5066/P9OGBGM6) |
+| `urban_landsat_lst_median` (estática anual) | Landsat 8-9 OLI/TIRS Collection 2 Level-2 | USGS | dominio público (cortesía del USGS) | [10.5066/P9OGBGM6](https://doi.org/10.5066/P9OGBGM6) |
 | `smap_*` | SMAP L4 SPL4SMGP v008 | NASA NSIDC DAAC | abierto, sin restricciones | [catálogo de Earth Engine](https://developers.google.com/earth-engine/datasets/catalog/NASA_SMAP_SPL4SMGP_008); [Reichle et al. 2019](https://doi.org/10.1029/2019MS001729) |
 | `viirs_*` | VIIRS Black Marble VNP46A2 v002 | NASA LAADS DAAC | abierto, sin restricciones | [10.5067/VIIRS/VNP46A2.002](https://doi.org/10.5067/VIIRS/VNP46A2.002) |
 | `urban_viirs_ntl_median` | VIIRS DNB mensual (VCMSLCFG) | Earth Observation Group, Colorado School of Mines | CC BY 4.0 | [Elvidge et al. 2017](https://doi.org/10.1080/01431161.2017.1342050) |

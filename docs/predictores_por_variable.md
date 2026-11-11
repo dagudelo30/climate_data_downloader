@@ -42,9 +42,9 @@ rezago mínimo es posible en un pronóstico.
 | Temperatura de brillo IR y duración de nube fría | Topes fríos ⇔ convección profunda; es el principio de CHIRPS/TAMSAT y PERSIANN-CCS | `goes_bt_c13`, `goes_bt_c13_min`, `goes_cold_cloud_frac_235`, `goes_cold_cloud_frac_220` |
 | Canales de vapor de agua y diferencias de canales (ABI 8, 10, 11, 14, 15) | Mejores predictores de lluvia convectiva con ML en GOES-16 | `goes_bt_c08`, `goes_bt_c09`, `goes_bt_c10`, `goes_bt_c11`, `goes_bt_c14`, `goes_bt_c15`, `goes_btd_c08_c13`, `goes_btd_c13_c15`, `goes_btd_c11_c14` |
 | Agua precipitable | Humedad disponible para precipitar | `modis_column_wv` |
-| Temperatura de superficie (LST) | La variable más importante en varios estudios de downscaling con RF | `modis_lst_day_terra`, `modis_lst_night_terra`, `modis_lst_day_aqua`, `modis_lst_night_aqua`, `landsat_lst` |
+| Temperatura de superficie (LST) | La variable más importante en varios estudios de downscaling con RF | `modis_lst_day_terra`, `modis_lst_night_terra`, `modis_lst_day_aqua`, `modis_lst_night_aqua` |
 | NDVI / EVI | Respuesta de la vegetación a la lluvia acumulada | `gee_ndvi`, `gee_evi`, `gee_s2_ndvi`, `gee_s2_evi` |
-| Humedad del suelo | Restricción física de la lluvia reciente; entre los predictores más influyentes | `smap_sm_surface`, `smap_sm_rootzone`, `sentinel1_vv_db` |
+| Humedad del suelo | Restricción física de la lluvia reciente; entre los predictores más influyentes | `smap_sm_surface`, `smap_sm_rootzone` |
 | Elevación, pendiente, orientación, TPI | Efecto orográfico | `static_elevation_m`, `static_slope_deg`, `static_northness`, `static_eastness`, `static_tpi_500m`, `static_tpi_2km` |
 | Nubosidad y horas con lluvia | Ocurrencia de lluvia | `modis_cloud_frac`, `agera5_precip_hours_frac`, `goes_refl_c02_day` |
 | Viento y presión | Advección de humedad y convergencia | `agera5_wind_speed`, `era5land_u_wind_10m`, `era5land_v_wind_10m`, `era5land_surface_pressure` |
@@ -71,7 +71,7 @@ rezago mínimo es posible en un pronóstico.
 | Predictor | Por qué | Columnas Gold |
 |---|---|---|
 | Temperatura de referencia de reanálisis | Campo base | `agera5_temp_mean`, `agera5_temp_max`, `agera5_temp_min`, `agera5_temp_day_max`, `agera5_temp_day_mean`, `agera5_temp_night_mean`, `agera5_temp_night_min` |
-| LST diurna y nocturna (Terra 10:30/22:30, Aqua 13:30/01:30, Landsat 30 m); LST del día anterior | La LST diurna explica Tmáx y la nocturna Tmín; la LST del día anterior también ayuda | `modis_lst_*`, `landsat_lst`, `era5land_skin_temp` |
+| LST diurna y nocturna (Terra 10:30/22:30, Aqua 13:30/01:30); LST del día anterior | La LST diurna explica Tmáx y la nocturna Tmín; la LST del día anterior también ayuda | `modis_lst_*`, `era5land_skin_temp`, `urban_landsat_lst_median` (estática anual) |
 | NDVI, superficie construida | Enfriamiento por vegetación e isla de calor urbana | `gee_*ndvi`, `urban_*` |
 | Elevación, pendiente, orientación, TPI | Gradiente térmico vertical y acumulación de aire frío en valles | `static_*` |
 | Radiación solar, nubosidad | Balance de energía | `agera5_solar_radiation`, `modis_cloud_frac`, `goes_refl_c02_day`, `era5land_thermal_radiation_down`, `era5land_net_thermal_radiation` |
@@ -156,7 +156,9 @@ Si dos fuentes miden la misma magnitud con el mismo muestreo temporal, queda **u
    ERA5-Land por día UTC, que en Colombia va de 19:00 a 19:00).
 
 Productos con muestreo distinto se conservan porque se complementan (MODIS diario a 500 m y
-Sentinel-2 a 10-20 m cada ~5 días; LST de MODIS diaria a 1 km y de Landsat a 30 m cada ~8 días).
+Sentinel-2 a 10-20 m cada ~5 días). Landsat y Sentinel-1 no se usan como fuentes diarias: sobre
+Cali dan muy pocos días con dato (revisita de 8 y 6 días más nubes); de Landsat solo queda la LST
+mediana anual entre las covariables estáticas.
 También se descartan columnas que se calculan exactamente de otras ya conservadas (P − ET₀).
 `uv run climate-pipeline variables` imprime cada decisión; `deduplicate: false` las conserva todas.
 

@@ -1,5 +1,5 @@
 # Operational exercise for Cali (urban perimeter): every selected daily source, from 1 January
-# 2026 up to TODAY, on four nested resolutions. Every key falls back to
+# 2015 up to TODAY, on three aligned resolutions (1 km, 2 km, 5 km). Every key falls back to
 # src/climate_pipeline/config.py (DEFAULT_SOURCES) when omitted.
 #
 #   climate-pipeline run   --config examples/cali_operational/pipeline.yaml   # local lake (Parquet)
@@ -7,15 +7,14 @@
 #   climate-pipeline coverage --config examples/cali_operational/pipeline.yaml
 run:
   aoi_path: data/auxiliary/shapefiles/cali/cali.shp
-  sources: [imerg, agera5, gee, era5land, modis, viirs, smap, landsat, goes, sentinel1]
-  start_date: 2026-01-01      # sync/coverage fill every gap from here …
+  sources: [imerg, agera5, gee, era5land, modis, viirs, smap, goes]   # landsat, sentinel1 dropped: too few days with data
+  start_date: 2015-01-01      # sync/coverage fill every gap from here …
   # end_date: omitted          # … to today (real time)
   target_grids:               # MAGNA-SIRGAS 2018 / Origen-Nacional, aligned: every grid nests
-    100m: EPSG:9377@100
-    500m: EPSG:9377@500
     1km: EPSG:9377@1000
+    2km: EPSG:9377@2000
     5km: EPSG:9377@5000
-  nested: false               # true: coarser grids = exact block means of the 100 m one
+  nested: false               # true: coarser grids = exact block means of the finest one (needs nesting: 2 km does not nest in 5 km)
   output_format: parquet      # local lake; `sync` always writes PostgreSQL
   static:
     layers: [terrain, urban, osm]
@@ -42,4 +41,4 @@ sources:
   goes:
     options: {utc_offset_hours: -5}
 
-  # Remaining sources (era5land, modis, viirs, landsat, sentinel1) use the defaults.
+  # Remaining sources (era5land, modis, viirs) use the defaults.

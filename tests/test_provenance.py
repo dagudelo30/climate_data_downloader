@@ -24,7 +24,7 @@ def _catalog(lake) -> ParquetCatalog:
             CatalogEntry("imerg", "*", SUN, Layer.SILVER, ProductStatus.PRELIM),
             CatalogEntry("imerg", "*", MON, Layer.SILVER, ProductStatus.FINAL),
             CatalogEntry("agera5", "*", SUN, Layer.SILVER, ProductStatus.FINAL),
-            CatalogEntry("landsat", "*", SUN, Layer.SILVER, ProductStatus.MISSING),
+            CatalogEntry("gee", "*", SUN, Layer.SILVER, ProductStatus.MISSING),
             CatalogEntry("imerg", "precip", SUN, Layer.BRONZE, ProductStatus.PRELIM),
         ]
     )
@@ -88,7 +88,7 @@ def test_postgres_product_status_views(pg_database) -> None:
         [
             CatalogEntry("imerg", "*", SUN, Layer.SILVER, ProductStatus.PRELIM),
             CatalogEntry("imerg", "*", MON, Layer.SILVER, ProductStatus.FINAL),
-            CatalogEntry("landsat", "*", MON, Layer.SILVER, ProductStatus.MISSING),
+            CatalogEntry("gee", "*", MON, Layer.SILVER, ProductStatus.MISSING),
         ]
     )
     rows = pg_database.connection().execute(

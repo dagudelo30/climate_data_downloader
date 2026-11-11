@@ -32,7 +32,7 @@ def test_every_configured_source_has_an_extractor_and_variables() -> None:
         specs = [spec for spec in catalog.all() if spec.source == source]
         assert specs, source
         assert all(spec.gold_column.startswith(f"{source}_") for spec in specs)
-    for source in ("era5land", "imerg", "gsmap", "modis", "viirs", "smap", "landsat", "goes", "sentinel1"):
+    for source in ("era5land", "imerg", "gsmap", "modis", "viirs", "smap", "goes"):
         assert source in config.sources
 
 
@@ -207,7 +207,6 @@ def test_new_variables_cover_every_target_family() -> None:
         "modis_aod_055",
         "agera5_et0",
         # surface
-        "sentinel1_vh_vv_db",
         "gee_s2_ndre",
         "gee_evi",
     }
@@ -312,7 +311,7 @@ def test_default_catalog_has_one_column_per_quantity() -> None:
     assert "agera5_temp_max" in defaults and "era5land_temp_max" not in defaults
     assert "modis_lst_day_aqua" in defaults and "viirs_lst_day" not in defaults
     # Different temporal sampling is complementary, not redundant.
-    assert {"gee_ndvi", "gee_s2_ndvi", "landsat_lst", "modis_lst_day_terra"} <= defaults
+    assert {"gee_ndvi", "gee_s2_ndvi", "modis_lst_day_terra"} <= defaults
     # Explicit requests and deduplicate=false keep access to every column.
     assert catalog.get("chirps", "precipitation_flux").gold_column == "chirps_precip"
     config = load_pipeline_config(None)

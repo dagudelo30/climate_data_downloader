@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Operational exercise: Cali (urban perimeter), from 1 January 2026 up to TODAY, every selected
-# daily source on 100 m, 500 m, 1 km and 5 km (EPSG:9377), plus the static covariates.
+# Operational exercise: Cali (urban perimeter), from 1 January 2015 up to TODAY, every selected
+# daily source on 1 km, 2 km and 5 km (EPSG:9377), plus the static covariates.
 # Everything (AOI, sources, dates, grids, static layers) is declared in pipeline.yaml (`run:`).
 #
 #   GEE_PROJECT=<your-gcp-project> bash examples/cali_operational/run_pipeline.sh

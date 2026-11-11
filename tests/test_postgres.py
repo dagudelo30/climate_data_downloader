@@ -220,7 +220,7 @@ def test_catalog_contract_is_the_same_on_both_back_ends(pg_database, lake) -> No
     entries = [
         CatalogEntry("imerg", "precip", DAY, Layer.BRONZE, ProductStatus.PRELIM, "bronze/x.nc"),
         CatalogEntry("imerg", "precip", DAY, Layer.SILVER, ProductStatus.PRELIM, "silver/x.nc"),
-        CatalogEntry("landsat", "lst", DAY, Layer.BRONZE, ProductStatus.MISSING, origin="no overpass"),
+        CatalogEntry("gee", "s2_ndvi", DAY, Layer.BRONZE, ProductStatus.MISSING, origin="clouds"),
     ]
     results = []
     for catalog in (ParquetCatalog(lake), PostgresCatalog(pg_database)):
@@ -230,13 +230,13 @@ def test_catalog_contract_is_the_same_on_both_back_ends(pg_database, lake) -> No
             (
                 catalog.sources(),
                 catalog.status_map("imerg"),
-                catalog.bronze_artifacts("landsat", DAY).empty,
+                catalog.bronze_artifacts("gee", DAY).empty,
                 catalog.pending_gold_dates("1km__x"),
                 catalog.summary()[["source", "layer", "status", "count"]].to_dict("records"),
             )
         )
     assert results[0] == results[1]
-    assert results[0][0] == ["imerg", "landsat"] and results[0][3] == [DAY]
+    assert results[0][0] == ["gee", "imerg"] and results[0][3] == [DAY]
 
 
 @pytest.mark.postgres

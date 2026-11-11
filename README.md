@@ -17,11 +17,11 @@ modelos de dengue. Arquitectura **Medallion** (Bronze → Silver → Gold).
 
 ## Qué entrega
 
-* **73 variables diarias** de 10 fuentes operativas y **24 covariables estáticas** (terreno y forma
+* **69 variables diarias** de 8 fuentes operativas y **24 covariables estáticas** (terreno y forma
   urbana). Ninguna fuente es más gruesa que **0.1°**. Una columna por magnitud física: si dos fuentes
   miden lo mismo, queda la **más reciente**, luego la de **mejor resolución**, luego la de más sentido.
-* **Gold en las resoluciones que se declaren**. El ejercicio de Cali usa **100 m, 500 m, 1 km y 5 km**
-  (EPSG:9377, grillas anidadas), cada una calculada desde los datos nativos.
+* **Gold en las resoluciones que se declaren**. El ejercicio de Cali usa **1 km, 2 km y 5 km**
+  (EPSG:9377, grillas alineadas), cada una calculada desde los datos nativos.
 * Por grilla, **`gold_daily`**, **`gold_epiweekly`** (semana epidemiológica domingo-sábado con `_ndays`)
   y **`static_covariates`**, unidas por `cell_id`, en **PostgreSQL** (con el polígono de cada celda en
   PostGIS), Parquet o DuckDB.
@@ -29,10 +29,10 @@ modelos de dengue. Arquitectura **Medallion** (Bronze → Silver → Gold).
   entre la fecha inicial y **hoy**, baja solo eso, actualiza Gold y reporta la cobertura: huecos y
   días de atraso respecto de lo que el proveedor ya podría haber publicado.
 
-**Ejercicio en tiempo real:** Cali, **1 de enero de 2026 → hoy**, todas las fuentes y las cuatro
+**Ejercicio:** Cali, **1 de enero de 2015 → hoy**, todas las fuentes seleccionadas y las tres
 resoluciones. Las evidencias están en [`outputs/cali_operational/`](outputs/cali_operational/README.md).
 
-![Variables clave de la última semana epidemiológica completa en 100 m, 500 m, 1 km y 5 km](outputs/cali_operational/maps/resoluciones_semana.png)
+![Variables clave de la última semana epidemiológica completa en 1 km, 2 km y 5 km](outputs/cali_operational/maps/resoluciones_semana.png)
 
 ## Instalación y ejecución
 
@@ -104,10 +104,10 @@ Todo el ejercicio está **declarado** en [`examples/cali_operational/pipeline.ya
 ```yaml
 run:
   aoi_path: data/auxiliary/shapefiles/cali/cali.shp
-  sources: [imerg, agera5, gee, era5land, modis, viirs, smap, landsat, goes, sentinel1]
-  start_date: 2026-01-01        # sync/coverage llenan todo hueco desde aquí…
+  sources: [imerg, agera5, gee, era5land, modis, viirs, smap, goes]
+  start_date: 2015-01-01        # sync/coverage llenan todo hueco desde aquí…
                                 # …hasta hoy (end_date omitido = tiempo real)
-  target_grids: {100m: EPSG:9377@100, 500m: EPSG:9377@500, 1km: EPSG:9377@1000, 5km: EPSG:9377@5000}
+  target_grids: {1km: EPSG:9377@1000, 2km: EPSG:9377@2000, 5km: EPSG:9377@5000}
   static: {layers: [terrain, urban, osm], year: 2026}
   max_behind_days: 3            # coverage marca "stale" a la fuente con más de 3 días de atraso
 ```
@@ -162,8 +162,6 @@ Variables de entorno (`.env`): `CLIMATE_DATA_ROOT`, `DATABASE_URL`, `DATABASE_SC
 | `goes` | NOAA GOES-East ABI | 14 | brillo IR y de vapor de agua (bandas 8-15), diferencias de bandas, mínimo diario, duración de nube fría (<235 K, <220 K), reflectancia visible diurna | 2 km (10 min → día) | ~1 d | [GEE GOES-19 MCMIP](https://developers.google.com/earth-engine/datasets/catalog/NOAA_GOES_19_MCMIPF) · [GEE GOES-16 MCMIP](https://developers.google.com/earth-engine/datasets/catalog/NOAA_GOES_16_MCMIPF) |
 | `modis` | NASA | 7 | LST día y noche de Terra y Aqua, fracción nubosa, agua precipitable y aerosoles (MAIAC) | 1 km | ~3 d | [MOD11A1](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A1) · [MYD11A1](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MYD11A1) · [MOD09GA](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD09GA) · [MCD19A2 MAIAC](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MCD19A2_GRANULES) |
 | `gee` | NASA / ESA | 10 | NDVI, NDWI, EVI y MNDWI de MODIS (diario) y Sentinel-2, más NDRE y BSI de Sentinel-2 | 500 m / 10-20 m | ~2-4 d | [MOD09GA](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD09GA) · [MYD09GA](https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MYD09GA) · [Sentinel-2 SR](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S2_SR_HARMONIZED) · [Cloud Score+](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_CLOUD_SCORE_PLUS_V1_S2_HARMONIZED) |
-| `landsat` | USGS | 1 | LST a 30 m (islas de calor) | 30 m | ~7 d | [Landsat 8 C2 L2](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C02_T1_L2) · [Landsat 9 C2 L2](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC09_C02_T1_L2) |
-| `sentinel1` | ESA | 3 | radar VV, VH y VH−VV (atraviesa nubes) | 10 m | ~3 d | [Sentinel-1 GRD](https://developers.google.com/earth-engine/datasets/catalog/COPERNICUS_S1_GRD) |
 | `smap` | NASA | 2 | humedad del suelo superficial y de la zona de raíces | 9 km | ~3 d | [SMAP L4 SPL4SMGP](https://developers.google.com/earth-engine/datasets/catalog/NASA_SMAP_SPL4SMGP_008) |
 | `viirs` | NASA | 1 | luces nocturnas diarias | ~460 m | ~6 d | [VIIRS VNP46A2](https://developers.google.com/earth-engine/datasets/catalog/NASA_VIIRS_002_VNP46A2) |
 | `build-static` | Copernicus, ESA, Google, JRC, OSM | 24 | terreno (elevación, pendiente, orientación, TPI a 500 m y 2 km, rugosidad) y forma urbana (NDBI, LST anual, edificios, alturas, vías, intersecciones, luces) | 4-100 m | fija o anual | [Copernicus DEM](https://registry.opendata.aws/copernicus-dem/) · [Dynamic World](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_DYNAMICWORLD_V1) · [ESA WorldCover](https://developers.google.com/earth-engine/datasets/catalog/ESA_WorldCover_v200) · [GHS-BUILT-S](https://developers.google.com/earth-engine/datasets/catalog/JRC_GHSL_P2023A_GHS_BUILT_S) · [GHS-BUILT-H](https://developers.google.com/earth-engine/datasets/catalog/JRC_GHSL_P2023A_GHS_BUILT_H) · [Open Buildings 2.5D](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_Research_open-buildings-temporal_v1) · [VIIRS DNB](https://developers.google.com/earth-engine/datasets/catalog/NOAA_VIIRS_DNB_MONTHLY_V1_VCMSLCFG) · [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) |
@@ -238,7 +236,7 @@ src/climate_pipeline/
 ├── domain/        objetos de valor puros: AOI, GridSpec (anidamiento), catálogo de variables,
 │                  regla de redundancia, semanas epidemiológicas, errores
 ├── extractors/    upstream → Bronze: agera5, gee, gee_datasets (era5land, imerg, gsmap, modis, viirs,
-│                  smap, landsat, goes, sentinel1), chirps, mswep + registro y reintentos
+│                  smap, goes), chirps, mswep + registro y reintentos
 ├── processing/    transformaciones puras: spatial (all_touched), harmonize, quality, resample,
 │                  aggregation (semana epidemiológica), terrain
 ├── storage/       layout del lago, catálogo (Parquet | Postgres), Gold (Parquet | DuckDB | Postgres),
@@ -309,8 +307,8 @@ escrituras son **atómicas** e **idempotentes**.
 * **`all_touched=True`:** se conserva todo píxel cuya celda toque el polígono, aunque su centro quede
   fuera (`rasterio.features.geometry_mask`). Un AOI más pequeño que un píxel conserva ese píxel.
 * **Grillas** (`name=EPSG:XXXX@resolución` o un ráster plantilla). En un CRS proyectado se alinean a
-  múltiplos de la resolución, así que 100 m, 500 m, 1 km y 5 km anidan y se cruzan sin operaciones
-  espaciales: `parent_cell_ids(fina, gruesa, cell_ids)`. Pedir otra grilla con el mismo nombre produce
+  múltiplos de la resolución, así que 1 km anida en 2 km y en 5 km y se cruzan sin operaciones
+  espaciales (2 km y 5 km se cruzan pasando por 1 km): `parent_cell_ids(fina, gruesa, cell_ids)`. Pedir otra grilla con el mismo nombre produce
   `GridMismatchError`, también contra la base.
 * **Remuestreo por variable** (`rasterio.warp.reproject` directo sobre numpy):
 
@@ -318,7 +316,7 @@ escrituras son **atómicas** e **idempotentes**.
 |---|---|---|
 | Flujos y acumulados (`imerg_precip`, `agera5_et0`, escorrentía) | promedio por área | **suma**, exige 7/7 días |
 | Campos continuos (temperaturas, HR, viento, radiación, brillos GOES) | bilineal (promedio por área en el borde del AOI) | media, ≥4 días |
-| Ópticos y radar con nubes o revisita (LST, índices, MAIAC, Sentinel-1) | promedio por área | media, ≥1 día válido |
+| Ópticos con nubes o revisita (LST, índices, MAIAC) | promedio por área | media, ≥1 día válido |
 | Fracciones (`modis_cloud_frac`, `goes_cold_cloud_frac_235`) | promedio por área | media |
 
 Gold incluye `cell_id = fila × ancho + columna`; `make_raster` reconstruye el ráster sin interpolar
@@ -347,13 +345,13 @@ parecería una semana seca, así que queda en NA.
 | IMERG V07 | ~2 días | ~13 meses (Final Run en Earth Engine) | el estado de la imagen decide `prelim`/`final`; el día espera las 48 medias horas; el provisional se reemplaza cuando llega el final |
 | GOES-East, SMAP | — | 1-3 días | el día espera ≥120 de 144 escaneos (GOES) u 8 de 8 (SMAP) |
 | AgERA5, ERA5-Land | — | 7-8 días | no pide fechas que aún no pueden existir |
-| MODIS, Sentinel-1/2, Landsat | — | 2-7 días | los días sin pasada quedan `missing` |
+| MODIS, Sentinel-2 | — | 2-4 días | los días sin pasada quedan `missing` |
 | VIIRS Black Marble | — | ~6 días | las imágenes vacías cuentan como no publicadas |
 
 * El **planificador** decide por `(variable, fecha)`: `new`, `retry_missing`, `prelim_upgrade`,
   `forced`, `up_to_date`, `missing_given_up` o `not_yet_expected`. `sync` solo reintenta un `missing`
-  dentro de la ventana `lookback_days` de la fuente: un día de Landsat sin pasada no se vuelve a pedir
-  cada noche.
+  dentro de la ventana `lookback_days` de la fuente: un día de Sentinel-2 sin pasada no se vuelve a
+  pedir cada noche.
 * **Fallos esperados vs inesperados.** Un dato no publicado se registra como `missing` y se reintenta.
   Un error real (credenciales, red, archivo corrupto) se aísla por tarea y fuente; la CLI sale con 1.
 * **Cobertura** (`coverage`, y al final de cada `sync`): por fuente y grilla, `in_gold`,
@@ -368,8 +366,8 @@ parecería una semana seca, así que queda en NA.
 | PostgreSQL | carga y lectura con `COPY` vía Arrow (sin bucles fila a fila); tablas particionadas por grilla con clave `(grid_name, date, cell_id)`, que sirve tanto al upsert como a los filtros por fecha |
 | Consultas sobre Parquet | particiones por día y semana con zstd y `cell_id` ordenado; DuckDB lee solo las columnas y archivos pedidos |
 
-Referencias medidas en una Mac (Apple Silicon): un año de las 10 fuentes ~40 min (dominado por la cola
-del CDS), Gold de un día en 100 m ~0.5 s, upsert de un día de 100 m en Postgres ~0.5 s, carga de un año
+Referencias medidas en una Mac (Apple Silicon): un año de fuentes ~40 min (dominado por la cola
+del CDS, que puede tardar mucho más en horas pico), Gold de un día en 100 m ~0.5 s, upsert de un día de 100 m en Postgres ~0.5 s, carga de un año
 completo a Postgres (`db import-lake`) ~4 min.
 
 ## CI/CD (GitHub Actions)

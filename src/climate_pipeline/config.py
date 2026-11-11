@@ -189,18 +189,10 @@ DEFAULT_SOURCES: dict[str, dict[str, Any]] = {
         "max_workers": 6,
         "options": {"utc_offset_hours": 0},
     },
-    "landsat": {  # Landsat 8/9 C2 L2, scenes appear ~1-2 weeks after acquisition
-        "latency": {"final_lag_days": 7, "lookback_days": 60},
-        "max_workers": 6,
-    },
     "goes": {  # GOES-East ABI full disk every 10 min; a day is complete ~1 day later
         "latency": {"final_lag_days": 1, "lookback_days": 30},
         "max_workers": 4,
         "options": {"utc_offset_hours": 0},
-    },
-    "sentinel1": {  # Sentinel-1C/D GRD, ingested in Earth Engine within ~1-3 days
-        "latency": {"final_lag_days": 3, "lookback_days": 30},
-        "max_workers": 6,
     },
 }
 

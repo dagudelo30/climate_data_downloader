@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-11-09T01:20:42+00:00",
-  "today": "2026-11-09",
+  "generated_at": "2026-11-11T21:49:08+00:00",
+  "today": "2026-11-11",
   "aoi": "cali",
   "aoi_bounds": [
     -76.5908,
@@ -8,8 +8,8 @@
     -76.4613,
     3.5019
   ],
-  "all_sources_complete_through": "2026-10-30",
-  "all_sources_last_complete_epiweek": "2026-W42",
+  "all_sources_complete_through": "2026-11-01",
+  "all_sources_last_complete_epiweek": "2026-W43",
   "sources": [
     {
       "source": "imerg",
@@ -20,18 +20,18 @@
       "variables": [
         "imerg_precip"
       ],
-      "latest_day": "2026-11-06",
+      "latest_day": "2026-11-09",
       "status": "prelim",
       "method": "probe",
-      "lag_days": 3,
-      "last_complete_epiweek": "2026-W43",
-      "last_complete_epiweek_end": "2026-10-31",
+      "lag_days": 2,
+      "last_complete_epiweek": "2026-W44",
+      "last_complete_epiweek_end": "2026-11-07",
       "final_latest_day": null,
       "notes": "",
       "native_resolution_m": 11100,
       "native_resolution": "11 km (0.1\u00b0)",
       "details": {
-        "imerg_v07": "2026-11-06"
+        "imerg_v07": "2026-11-09"
       },
       "error": null
     },
@@ -64,13 +64,13 @@
         "agera5_et0",
         "agera5_precip_hours_frac"
       ],
-      "latest_day": "2026-11-01",
+      "latest_day": "2026-11-03",
       "status": "final",
       "method": "config",
       "lag_days": 8,
       "last_complete_epiweek": "2026-W43",
       "last_complete_epiweek_end": "2026-10-31",
-      "final_latest_day": "2026-11-01",
+      "final_latest_day": "2026-11-03",
       "notes": "Published daily by the CDS ~7-8 days after the observation; every CDS request is queued, so it is not probed live.",
       "native_resolution_m": 11100,
       "native_resolution": "11 km (0.1\u00b0)",
@@ -89,18 +89,18 @@
         "gee_s2_ndvi",
         "gee_s2_ndwi"
       ],
-      "latest_day": "2026-11-06",
+      "latest_day": "2026-11-08",
       "status": "final",
       "method": "probe",
       "lag_days": 3,
-      "last_complete_epiweek": "2026-W43",
-      "last_complete_epiweek_end": "2026-10-31",
+      "last_complete_epiweek": "2026-W44",
+      "last_complete_epiweek_end": "2026-11-07",
       "final_latest_day": null,
       "notes": "Optical: a published day can still be fully cloudy over the AOI.",
       "native_resolution_m": 100,
       "native_resolution": "100 m Sentinel-2 (desde 20 m); 500 m MODIS",
       "details": {
-        "modis_terra_aqua_indices": "2026-11-06",
+        "modis_terra_aqua_indices": "2026-11-09",
         "sentinel2_indices": "2026-11-08"
       },
       "error": null
@@ -126,7 +126,7 @@
         "era5land_lai_low",
         "era5land_albedo"
       ],
-      "latest_day": "2026-11-01",
+      "latest_day": "2026-11-03",
       "status": "final",
       "method": "probe",
       "lag_days": 8,
@@ -137,7 +137,7 @@
       "native_resolution_m": 11100,
       "native_resolution": "11 km (0.1\u00b0)",
       "details": {
-        "era5land_daily": "2026-11-01"
+        "era5land_daily": "2026-11-03"
       },
       "error": null
     },
@@ -156,21 +156,21 @@
         "modis_column_wv",
         "modis_aod_055"
       ],
-      "latest_day": "2026-11-05",
+      "latest_day": "2026-11-08",
       "status": "final",
       "method": "probe",
-      "lag_days": 4,
-      "last_complete_epiweek": "2026-W43",
-      "last_complete_epiweek_end": "2026-10-31",
+      "lag_days": 3,
+      "last_complete_epiweek": "2026-W44",
+      "last_complete_epiweek_end": "2026-11-07",
       "final_latest_day": null,
       "notes": "",
       "native_resolution_m": 1000,
       "native_resolution": "1 km (LST, nubosidad, vapor de agua y aerosoles MAIAC)",
       "details": {
-        "mod11a1": "2026-11-07",
-        "myd11a1": "2026-11-05",
-        "mod09ga_cloud": "2026-11-06",
-        "mcd19a2": "2026-11-05"
+        "mod11a1": "2026-11-10",
+        "myd11a1": "2026-11-09",
+        "mod09ga_cloud": "2026-11-09",
+        "mcd19a2": "2026-11-08"
       },
       "error": null
     },
@@ -183,18 +183,18 @@
       "variables": [
         "viirs_ntl"
       ],
-      "latest_day": "2026-10-30",
+      "latest_day": "2026-11-01",
       "status": "final",
       "method": "probe",
       "lag_days": 10,
-      "last_complete_epiweek": "2026-W42",
-      "last_complete_epiweek_end": "2026-10-24",
+      "last_complete_epiweek": "2026-W43",
+      "last_complete_epiweek_end": "2026-10-31",
       "final_latest_day": null,
       "notes": "",
       "native_resolution_m": 460,
       "native_resolution": "~460 m luces nocturnas; 1 km LST",
       "details": {
-        "vnp46a2": "2026-10-30"
+        "vnp46a2": "2026-11-01"
       },
       "error": null
     },
@@ -208,42 +208,18 @@
         "smap_sm_surface",
         "smap_sm_rootzone"
       ],
-      "latest_day": "2026-11-05",
+      "latest_day": "2026-11-08",
       "status": "final",
       "method": "probe",
-      "lag_days": 4,
-      "last_complete_epiweek": "2026-W43",
-      "last_complete_epiweek_end": "2026-10-31",
+      "lag_days": 3,
+      "last_complete_epiweek": "2026-W44",
+      "last_complete_epiweek_end": "2026-11-07",
       "final_latest_day": null,
       "notes": "",
       "native_resolution_m": 9000,
       "native_resolution": "9 km",
       "details": {
-        "spl4smgp": "2026-11-05"
-      },
-      "error": null
-    },
-    {
-      "source": "landsat",
-      "product": "LANDSAT/LC08/C02/T1_L2, LANDSAT/LC09/C02/T1_L2",
-      "agency": "USGS / NASA",
-      "resolution": "30 m (L8+L9, ~8-day revisit)",
-      "cadence": "daily",
-      "variables": [
-        "landsat_lst"
-      ],
-      "latest_day": "2026-11-01",
-      "status": "final",
-      "method": "probe",
-      "lag_days": 8,
-      "last_complete_epiweek": "2026-W43",
-      "last_complete_epiweek_end": "2026-10-31",
-      "final_latest_day": null,
-      "notes": "",
-      "native_resolution_m": 30,
-      "native_resolution": "30 m (t\u00e9rmico 100 m, entregado a 30 m)",
-      "details": {
-        "landsat_c2_l2": "2026-11-01"
+        "spl4smgp": "2026-11-08"
       },
       "error": null
     },
@@ -269,7 +245,7 @@
         "goes_cold_cloud_frac_220",
         "goes_refl_c02_day"
       ],
-      "latest_day": "2026-11-08",
+      "latest_day": "2026-11-10",
       "status": "final",
       "method": "probe",
       "lag_days": 1,
@@ -280,33 +256,7 @@
       "native_resolution_m": 2000,
       "native_resolution": "2 km (ABI IR y vapor de agua; visible 0.5-1 km)",
       "details": {
-        "goes_east_abi": "2026-11-08"
-      },
-      "error": null
-    },
-    {
-      "source": "sentinel1",
-      "product": "COPERNICUS/S1_GRD",
-      "agency": "ESA Copernicus",
-      "resolution": "10 m (IW GRD), delivered at 30 m; ~6-day revisit",
-      "cadence": "daily",
-      "variables": [
-        "sentinel1_vv_db",
-        "sentinel1_vh_db",
-        "sentinel1_vh_vv_db"
-      ],
-      "latest_day": "2026-11-06",
-      "status": "final",
-      "method": "probe",
-      "lag_days": 3,
-      "last_complete_epiweek": "2026-W43",
-      "last_complete_epiweek_end": "2026-10-31",
-      "final_latest_day": null,
-      "notes": "",
-      "native_resolution_m": 10,
-      "native_resolution": "10 m (radar C, entregado a 30 m)",
-      "details": {
-        "s1_grd": "2026-11-06"
+        "goes_east_abi": "2026-11-10"
       },
       "error": null
     }

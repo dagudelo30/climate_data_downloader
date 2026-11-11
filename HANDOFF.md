@@ -1,7 +1,22 @@
 # Handoff — climate-pipeline (Dengue.IA Cali)
 
-_Actualizado: 2026-11-09 · todo en `main` (PR #4 backend Postgres y ejercicio en tiempo real · PR #5
-optimización y limpieza · PR #6 licencia, atribución y procedencia · PR #7 este handoff)_
+_Actualizado: 2026-11-11 · rama `feature/sin-landsat-sentinel1` (sobre `main`: PR #4 backend Postgres ·
+PR #5 optimización · PR #6 licencia y procedencia · PR #7 handoff)_
+
+## Cambios del 2026-11-11
+
+* **Ejercicio nuevo: 2015-01-01 → hoy, grillas 1 km, 2 km y 5 km** (se retiraron 100 m y 500 m).
+  `nested: false`: 2 km no cabe un número entero de veces en 5 km, así que cada grilla sale de Silver.
+* **Se borró la corrida anterior** (2026, cuatro grillas): el lago `data/` (Bronze, Silver, Gold,
+  catálogo y el snapshot `2026-11-09`) y el esquema `climate` de la base local, recreado vacío.
+* **Landsat y Sentinel-1 retirados del repositorio** (código, configuración, pruebas y documentación):
+  sobre Cali dan muy pocos días con dato (Landsat ~40 días/año por la revisita de 8 días y las nubes;
+  Sentinel-1 ~80 días/año y solo 3 en 2015). Quedan **8 fuentes y 69 variables diarias**. Se conserva
+  la covariable estática `urban_landsat_lst_median` (compuesto anual de Earth Engine, cobertura completa).
+* **Back-fill en curso** año por año (`run --start-date AAAA-01-01 --end-date AAAA-12-31`, de 2015 a
+  2026) para no agotar la cuota de Earth Engine y poder retomarlo. El cuello de botella es la cola del
+  CDS para AgERA5 (hubo ~50 min sin respuesta el 2026-11-11). Al terminar: `build-static`, `coverage`,
+  figuras, `db import-lake` y snapshot.
 
 ## Objetivo
 
@@ -14,7 +29,7 @@ bajar solo eso y dejar Gold al día. El front lo construye Andrés; el backend e
 
 | Pieza | Estado |
 |---|---|
-| Ejercicio único en tiempo real (`examples/cali_operational`: 2026-01-01 → hoy, 10 fuentes, 100 m / 500 m / 1 km / 5 km, estáticas 2026) | ✅ corrido localmente; lago en `data/` |
+| Ejercicio único (`examples/cali_operational`: 2015-01-01 → hoy, 8 fuentes, 1 km / 2 km / 5 km, estáticas 2026) | ⏳ back-fill en curso; lago en `data/` |
 | Backend PostgreSQL (migraciones 0001–0003, Gold particionado por grilla, `ingest_manifest`, PostGIS, vistas de frescura y estado de producto) | ✅ con pruebas de integración |
 | `sync`, `coverage`, `snapshot`, `db init/status/import-lake` | ✅ |
 | Configuración declarativa (`run:` en el YAML) | ✅ todos los comandos la leen |
@@ -22,10 +37,10 @@ bajar solo eso y dejar Gold al día. El front lo construye Andrés; el backend e
 | Licencia (MIT), `CITATION.cff`, `ATTRIBUTION.md` | ✅ **falta que Diego confirme la MIT** |
 | Estado provisional en Gold (`product_status*`) y snapshots fechados | ✅ primer snapshot `data/snapshots/2026-11-09/` |
 | CI (`ci.yml`: lint, pruebas con PostGIS, imagen a GHCR) y cron (`db-sync.yml`) | ⚠️ escritos pero **sin correr**: GitHub Actions está desactivado en el repo |
-| Base local (`docker compose up -d db`, puerto 5433) | ✅ cargada con 2026-01-01 → 2026-11-08, 4 grillas (1.8 GB) |
+| Base local (`docker compose up -d db`, puerto 5433) | ⏳ vacía (esquema recreado el 2026-11-11); se carga con `db import-lake` al cerrar el back-fill |
 | Calidad | ruff limpio, `uv.lock` al día, **179 pruebas** (79.6 % de cobertura) incluidas las de PostGIS; imagen Docker construida y probada |
 
-## Resultados del ejercicio (corrida del 2026-11-08/09)
+## Resultados de la corrida anterior (2026-11-08/09, ya borrada; referencia de tiempos y latencias)
 
 Cali, **2026-01-01 → 2026-11-08**, 10 fuentes, 73 variables diarias + 24 estáticas. Lago en `data/`
 (Bronze 839 MB, Silver 220 MB, Gold 1.1 GB) y lo mismo en PostgreSQL local.
@@ -119,7 +134,7 @@ configuración, filas y SHA-256) y filtrar o ponderar los días `prelim` con `go
 
    Orden de trabajo:
    1. Modo Parquet + S3 del runner: upsert por columnas también en Parquet (hoy reescribe la partición
-      completa) y bajar/subir el catálogo y las particiones afectadas; `run.target_grids` → `{1km, 5km}`.
+      completa) y bajar/subir el catálogo y las particiones afectadas; `run.target_grids` ya es `{1km, 2km, 5km}`.
    2. Productos por **barrio (335) y comuna (22)**, calculados desde **Silver nativo** (los barrios son más
       pequeños que una celda de 1 km); diarios y semanales con `_ndays`.
    3. Exportadores a Parquet, NetCDF CF-1.8 y CSV por nivel y año; `catalog.json` para la página de
@@ -127,7 +142,8 @@ configuración, filas y SHA-256) y filtrar o ponderar los días `prelim` con `go
    4. Terraform (S3, ECR, Fargate, Scheduler, IAM mínimo, Parameter Store, alarma con SNS) y CI con OIDC.
    5. API Lambda: `/variables`, `/catalog`, `/coverage`, `/series`, `/map`, `/download` y `/features`
       (rezagos de 1 a N semanas).
-   6. Back-fill de 10 años (~1 h por año de datos; antes de 2018 GOES y Sentinel-2 quedan en NA).
+   6. ~~Back-fill de 10 años~~: en curso desde 2015 (antes de 2017-2018 GOES y Sentinel-2 quedan en NA;
+      SMAP empieza el 2015-03-31).
 4. **Mejoras del repo aún no hechas** (de la revisión del 2026-11-09):
    * Dependabot o Renovate (versiones fijadas exactas), `pre-commit` con ruff y pyright o mypy en el CI.
    * Separar `cli.py` (~830 líneas, 46 % de cobertura) por comando y `gee_datasets.py` (~1 200 líneas)

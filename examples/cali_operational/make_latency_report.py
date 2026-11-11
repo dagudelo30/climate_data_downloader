@@ -28,7 +28,7 @@ GROUPS = {
     "Precipitación": ["imerg"],
     "Reanálisis agroclimático": ["agera5", "era5land"],
     "Geoestacionario (nubes y vapor)": ["goes"],
-    "Superficie desde satélite": ["modis", "landsat", "gee", "sentinel1", "smap", "viirs"],
+    "Superficie desde satélite": ["modis", "gee", "smap", "viirs"],
 }
 LABELS = {
     "chirps": "CHIRPS v3",
@@ -39,9 +39,7 @@ LABELS = {
     "era5land": "ERA5-Land",
     "goes": "GOES-East ABI",
     "modis": "MODIS LST, nubes, MAIAC",
-    "landsat": "Landsat 8/9",
     "gee": "MODIS/Sentinel-2 índices",
-    "sentinel1": "Sentinel-1 radar",
     "smap": "SMAP L4",
     "viirs": "VIIRS luces nocturnas",
 }
@@ -54,9 +52,7 @@ NOTES = {
     "era5land": "Solo aporta lo que AgERA5 no tiene: viento u/v, suelo, flujos, onda larga, escorrentía, LAI y albedo.",
     "goes": "Escaneo cada 10 min; un día está completo con ≥120 de 144 escaneos.",
     "modis": "Día publicado no es día despejado: LST, vapor y aerosoles tienen huecos por nubes.",
-    "landsat": "Solo LST (NDVI/NDBI quedan para Sentinel-2, más reciente). Una pasada cada ~8 días.",
     "gee": "Ópticos: un día publicado puede estar totalmente nublado sobre Cali.",
-    "sentinel1": "Radar: ve a través de las nubes; una pasada cada ~6 días (S1C+S1D).",
     "smap": "Asimilación del radiómetro SMAP en un modelo de superficie (L4).",
     "viirs": "Las imágenes de los últimos días se publican vacías y se llenan después.",
 }
@@ -162,7 +158,7 @@ def timeline_svg(items: list[dict], today: date, days_back: int) -> str:
     return "\n".join(parts)
 
 
-def load_last_valid(inventory: Path, grid: str = "100m") -> dict[str, str]:
+def load_last_valid(inventory: Path, grid: str = "1km") -> dict[str, str]:
     """Last day with a valid value per Gold column (from summarize_gold.py)."""
     if not inventory.exists():
         return {}
@@ -223,9 +219,8 @@ def selected_variables_section(config_path: Path, report: dict, inventory: Path)
                     f"<td>{esc(when_text(row['publication_lag_days']))}</td></tr>"
                 )
     note = (
-        "La latencia efectiva es el último día con un valor válido sobre Cali en Gold de 100 m: en las fuentes ópticas"
-        " (MODIS, Sentinel-2, Landsat) y en el radar con revisita (Sentinel-1) es mayor que la de publicación porque hay"
-        " días nublados o sin pasada."
+        "La latencia efectiva es el último día con un valor válido sobre Cali en Gold de 1 km: en las fuentes ópticas"
+        " (MODIS, Sentinel-2) es mayor que la de publicación porque hay días nublados o sin pasada."
         if has_effective
         else "La latencia efectiva aparece cuando existe la corrida del ejercicio (tables/column_inventory.csv)."
     )
@@ -435,7 +430,7 @@ code {{ font-family: var(--font-data); font-size: .92em; }}
       <li>IMERG entrega primero un dato <strong>provisional</strong> (y CHIRPS, si se usa, uno preliminar). El pipeline lo marca como
       <code>prelim</code> y lo vuelve a descargar cuando sale el final. Para reentrenar conviene usar solo semanas finales;
       para pronosticar se usa el preliminar.</li>
-      <li>Las fuentes ópticas (MODIS, Landsat, Sentinel-2) publican a diario, pero un día publicado puede estar cubierto de nubes
+      <li>Las fuentes ópticas (MODIS, Sentinel-2) publican a diario, pero un día publicado puede estar cubierto de nubes
       sobre Cali. Su latencia efectiva es mayor: hay que usar promedios semanales con el conteo <code>_ndays</code>.</li>
       <li>La corrida diaria (<code>run --incremental</code>) pide a cada fuente solo los días que ya pueden existir según su
       latencia y vuelve a intentar los faltantes. Este reporte se regenera con <code>climate-pipeline availability</code>.</li>

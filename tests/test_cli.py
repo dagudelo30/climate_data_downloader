@@ -157,7 +157,7 @@ def test_db_commands(pg_database, monkeypatch) -> None:
     status = runner.invoke(app, ["db", "status"])
     assert status.exit_code == 0 and "== freshness" in status.output
     selected = pg_database.connection().execute("SELECT count(*) FROM variable WHERE selected").fetchone()[0]
-    assert selected == 73
+    assert selected == 69
 
 
 def test_postgres_without_database_url_is_a_clean_error(aoi_file, tmp_path, monkeypatch) -> None:
